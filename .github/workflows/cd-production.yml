@@ -1,0 +1,159 @@
+name: CD — Production
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"   # semver tags: v1.2.3
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # never cancel an in-flight production deploy
+
+jobs:
+  build-and-push-backend:
+    name: Build & Push Backend Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.REGISTRY_URL }}/${{ vars.BACKEND_IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-and-push-frontend:
+    name: Build & Push Frontend Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.REGISTRY_URL }}/${{ vars.FRONTEND_IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.PRODUCTION_API_URL }}
+            NEXT_PUBLIC_WS_URL=${{ vars.PRODUCTION_WS_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-production:
+    name: Deploy to Production (manual approval required)
+    runs-on: ubuntu-latest
+    needs: [build-and-push-backend, build-and-push-frontend]
+    environment:
+      name: production          # requires a GitHub "production" environment with required reviewers
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run DB migrations on production
+        run: |
+          echo "TODO: trigger migration job on production cluster"
+          # aws ecs run-task --cluster ${{ vars.ECS_CLUSTER_PRODUCTION }} \
+          #   --task-definition contract-mgmt-migrate-production \
+          #   --launch-type FARGATE ...
+
+      # ── AWS ECS ─────────────────────────────────────────────────────────
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ vars.AWS_REGION }}
+      #
+      # - name: Deploy backend to ECS (production)
+      #   run: |
+      #     aws ecs update-service \
+      #       --cluster ${{ vars.ECS_CLUSTER_PRODUCTION }} \
+      #       --service ${{ vars.ECS_BACKEND_SERVICE_PRODUCTION }} \
+      #       --force-new-deployment
+      #
+      # - name: Deploy frontend to ECS / Amplify (production)
+      #   run: |
+      #     aws ecs update-service \
+      #       --cluster ${{ vars.ECS_CLUSTER_PRODUCTION }} \
+      #       --service ${{ vars.ECS_FRONTEND_SERVICE_PRODUCTION }} \
+      #       --force-new-deployment
+
+      # ── GCP Cloud Run ────────────────────────────────────────────────────
+      # - name: Authenticate to GCP
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      #
+      # - name: Deploy backend to Cloud Run (production)
+      #   uses: google-github-actions/deploy-cloudrun@v2
+      #   with:
+      #     service: contract-mgmt-backend
+      #     region: ${{ vars.GCP_REGION }}
+      #     image: ${{ vars.REGISTRY_URL }}/${{ vars.BACKEND_IMAGE_NAME }}:latest
+      #
+      # - name: Deploy frontend to Cloud Run (production)
+      #   uses: google-github-actions/deploy-cloudrun@v2
+      #   with:
+      #     service: contract-mgmt-frontend
+      #     region: ${{ vars.GCP_REGION }}
+      #     image: ${{ vars.REGISTRY_URL }}/${{ vars.FRONTEND_IMAGE_NAME }}:latest
+
+      - name: Production smoke tests
+        run: |
+          curl --fail --retry 5 --retry-delay 15 \
+            "${{ vars.PRODUCTION_URL }}/api/auth/me/" || exit 1
+          echo "Production smoke test passed"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
