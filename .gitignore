@@ -37,11 +37,14 @@ local_settings.py
 node_modules/
 .next/
 out/
+.next/standalone/
+.next/static/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 .npm
+.turbo/
 
 # ============================================================
 # Environment / Secrets
@@ -49,6 +52,9 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.staging
 # Keep .env.example tracked
 !.env.example
 
@@ -73,7 +79,37 @@ ehthumbs.db
 Thumbs.db
 
 # ============================================================
+# Testing artefacts
+# ============================================================
+playwright-report/
+test-results/
+e2e/test-results/
+coverage/
+.nyc_output/
+
+# ============================================================
+# Docker
+# ============================================================
+docker-compose.override.yml
+
+# ============================================================
+# Celery
+# ============================================================
+celerybeat-schedule
+celerybeat.pid
+
+# ============================================================
+# AWS
+# ============================================================
+.aws/
+*.pem
+*.p12
+*.pfx
+
+# ============================================================
 # Misc
 # ============================================================
 *.tmp
 *.bak
+*.orig
+*.rej

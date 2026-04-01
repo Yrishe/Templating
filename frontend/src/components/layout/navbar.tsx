@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/hooks/use-auth'
 import { useUnreadNotifications } from '@/hooks/use-notifications'
+import { MobileSidebar } from '@/components/layout/sidebar'
 import { ROUTES } from '@/lib/constants'
 import { getInitials } from '@/lib/utils'
 
@@ -22,11 +23,10 @@ export function Navbar() {
     router.push(ROUTES.LOGIN)
   }
 
-  if (!user) return null
-
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center gap-4 px-6">
+        <MobileSidebar />
         <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2 font-semibold text-lg">
           <FileText className="h-5 w-5 text-primary" />
           <span className="hidden sm:inline">ContractMgr</span>
@@ -61,14 +61,14 @@ export function Navbar() {
 
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex h-8 w-8 rounded-full bg-primary items-center justify-center text-primary-foreground text-xs font-semibold">
-              {getInitials(user.first_name, user.last_name)}
+              {getInitials(user?.first_name ?? '', user?.last_name ?? '')}
             </div>
             <div className="hidden md:flex flex-col leading-tight">
               <span className="text-sm font-medium">
-                {user.first_name} {user.last_name}
+                {user?.first_name} {user?.last_name}
               </span>
               <Badge variant="outline" className="text-[10px] py-0 px-1 capitalize h-auto">
-                {user.role.replace('_', ' ')}
+                {user?.role?.replace('_', ' ')}
               </Badge>
             </div>
           </div>
