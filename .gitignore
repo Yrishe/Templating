@@ -84,6 +84,7 @@ Thumbs.db
 playwright-report/
 test-results/
 e2e/test-results/
+<<<<<<< HEAD
 coverage/
 .nyc_output/
 
@@ -105,6 +106,8 @@ celerybeat.pid
 *.pem
 *.p12
 *.pfx
+=======
+>>>>>>> d5caa8774a7d38329d9531beec1f01ae63b17694
 
 # ============================================================
 # Misc
