@@ -4,22 +4,19 @@ import React from 'react'
 import Link from 'next/link'
 import { PlusCircle, FolderOpen, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { NotificationFeed } from '@/components/dashboard/notification-feed'
 import { ProjectSummaryCard } from '@/components/dashboard/project-summary-card'
-import { Badge } from '@/components/ui/badge'
 import { useDashboard } from '@/hooks/use-notifications'
 import { useAuth } from '@/hooks/use-auth'
-import { ROUTES, CONTRACT_REQUEST_STATUS } from '@/lib/constants'
-import { formatRelativeTime } from '@/lib/utils'
+import { ROUTES } from '@/lib/constants'
 
 export function DashboardContent() {
   const { user } = useAuth()
   const { data, isLoading } = useDashboard()
 
-  const projects = data?.projects ?? []
-  const notifications = data?.notifications ?? []
-  const recentRequests = data?.recent_contract_requests ?? []
+  const projects = data?.recent_projects ?? []
+  const notifications = data?.recent_notifications ?? []
 
   return (
     <div className="space-y-6">
@@ -65,9 +62,7 @@ export function DashboardContent() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {isLoading
-                    ? '—'
-                    : recentRequests.filter((r) => r.status === CONTRACT_REQUEST_STATUS.PENDING).length}
+                  {isLoading ? '—' : data?.pending_contract_requests ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Pending Requests</p>
               </div>
@@ -82,7 +77,7 @@ export function DashboardContent() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {isLoading ? '—' : notifications.filter((n) => !n.is_read).length}
+                  {isLoading ? '—' : data?.unread_notification_count ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Unread Notifications</p>
               </div>
@@ -132,39 +127,6 @@ export function DashboardContent() {
             </div>
           )}
 
-          {/* Recent contract requests */}
-          {recentRequests.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-lg font-semibold mb-4">Recent Contract Requests</h2>
-              <div className="space-y-2">
-                {recentRequests.slice(0, 5).map((req) => (
-                  <div
-                    key={req.id}
-                    className="flex items-center justify-between p-3 rounded-md border"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{req.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatRelativeTime(req.created_at)}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        req.status === 'approved'
-                          ? 'success'
-                          : req.status === 'rejected'
-                          ? 'destructive'
-                          : 'warning'
-                      }
-                      className="shrink-0 ml-3"
-                    >
-                      {req.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Notifications */}

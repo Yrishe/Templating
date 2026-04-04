@@ -6,6 +6,7 @@ import type {
   Contract,
   ContractRequest,
   ProjectMembership,
+  Timeline,
   TimelineEvent,
 } from '@/types'
 
@@ -156,8 +157,7 @@ export function useProjectMembers(projectId: string) {
 export function useProjectTimeline(projectId: string) {
   return useQuery({
     queryKey: projectKeys.timeline(projectId),
-    queryFn: () =>
-      api.get<PaginatedResponse<TimelineEvent>>(`/api/timeline-events/?project=${projectId}`),
+    queryFn: () => api.get<Timeline>(`/api/projects/${projectId}/timeline/`),
     enabled: Boolean(projectId),
   })
 }
@@ -165,12 +165,10 @@ export function useProjectTimeline(projectId: string) {
 export function useCreateTimelineEvent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: Partial<TimelineEvent>) =>
-      api.post<TimelineEvent>('/api/timeline-events/', data),
+    mutationFn: ({ projectId, ...data }: Partial<TimelineEvent> & { projectId: string }) =>
+      api.post<TimelineEvent>(`/api/projects/${projectId}/timeline/events/`, data),
     onSuccess: (_data, variables) => {
-      if (variables.timeline) {
-        queryClient.invalidateQueries({ queryKey: ['timeline-events'] })
-      }
+      queryClient.invalidateQueries({ queryKey: projectKeys.timeline(variables.projectId) })
     },
   })
 }

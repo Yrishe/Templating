@@ -110,7 +110,6 @@ python manage.py makemigrations email_organiser
 python manage.py makemigrations dashboard
 
 python manage.py migrate
-python manage.py runserver          # or: daphne -p 8000 config.asgi:application
 
 # Load fake data
 python manage.py loaddata fixtures/users.json fixtures/initial_data.json
@@ -120,6 +119,8 @@ python manage.py shell
     - u = User.objects.get(email='alice.manager@example.com')
     - u.set_password('password123') 
     - u.save()
+
+python manage.py runserver          # or: daphne -p 8000 config.asgi:application
 ```
 
 Start Celery workers in separate terminals:

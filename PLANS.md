@@ -4,7 +4,7 @@
 
 ---
 
-### 1. Manager account does not display "Create Project" option
+### 1. Manager account does not display "Create Project" option ✅ (documented — no code change needed)
 
 **Root cause:**
 A user created via `createsuperuser` has no `role` field set. The sidebar filters the "New Project" item by `[USER_ROLES.MANAGER, USER_ROLES.SUBSCRIBER]` — if `user.role` is `null` or `undefined`, the filter silently hides it.
@@ -23,7 +23,7 @@ No frontend code change needed — the filtering logic is correct.
 
 ---
 
-### 2. "Recent Projects" in Dashboard page does not display existing projects
+### 2. "Recent Projects" in Dashboard page does not display existing projects ✅ (fixed 2026-04-03)
 
 **Root cause:**
 Field name mismatch between backend and frontend. The backend (`dashboard/views.py`) returns:
@@ -52,7 +52,7 @@ Note: `recent_contract_requests` is not returned by the backend at all — eithe
 
 ---
 
-### 3. Timeline failing to load
+### 3. Timeline failing to load ✅ (fixed 2026-04-03)
 
 **Root cause:**
 Two issues:
@@ -71,7 +71,7 @@ Two issues:
 
 ---
 
-### 4. Settings page not working
+### 4. Settings page not working ✅ (fixed 2026-04-03)
 
 **Root cause:**
 The settings page (`settings-content.tsx`) is read-only — it only displays the user's name, email, and role as static text. There are no form inputs or save actions, so the user cannot change anything.
@@ -89,7 +89,7 @@ Replace the static display with an editable form:
 
 ---
 
-### 5. Notifications "Mark All Read" returns 404
+### 5. Notifications "Mark All Read" returns 404 ✅ (fixed 2026-04-03)
 
 **Root cause:**
 Two separate endpoint mismatches:

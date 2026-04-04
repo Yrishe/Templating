@@ -1,9 +1,5 @@
 import { Navbar } from '@/components/layout/navbar'
-<<<<<<< HEAD
 import { Sidebar } from '@/components/layout/sidebar'
-=======
-import { Sidebar, MobileSidebar } from '@/components/layout/sidebar'
->>>>>>> d5caa8774a7d38329d9531beec1f01ae63b17694
 import { AuthGuard } from '@/components/auth/auth-guard'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

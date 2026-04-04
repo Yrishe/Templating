@@ -38,6 +38,20 @@ class NotificationMarkReadView(APIView):
         return Response(NotificationSerializer(notification).data)
 
 
+class NotificationMarkAllReadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request) -> Response:
+        from projects.models import ProjectMembership
+        member_project_ids = ProjectMembership.objects.filter(
+            user=request.user
+        ).values_list("project_id", flat=True)
+        Notification.objects.filter(
+            project__in=member_project_ids, is_read=False
+        ).update(is_read=True)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class OutboundEmailListView(generics.ListAPIView):
     serializer_class = OutboundEmailSerializer
     permission_classes = [permissions.IsAuthenticated, IsManager]

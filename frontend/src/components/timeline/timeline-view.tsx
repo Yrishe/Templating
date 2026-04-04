@@ -34,11 +34,11 @@ function EventStatusBadge({ status }: { status: TimelineEvent['status'] }) {
 }
 
 interface AddEventFormProps {
-  timelineId: string
+  projectId: string
   onClose: () => void
 }
 
-function AddEventForm({ timelineId, onClose }: AddEventFormProps) {
+function AddEventForm({ projectId, onClose }: AddEventFormProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -50,7 +50,7 @@ function AddEventForm({ timelineId, onClose }: AddEventFormProps) {
     if (!title || !startDate) return
 
     await createEvent.mutateAsync({
-      timeline: timelineId,
+      projectId,
       title,
       description,
       start_date: startDate,
@@ -131,7 +131,7 @@ export function TimelineView({ projectId }: TimelineViewProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const isManager = user?.role === 'manager'
 
-  const events = (data?.results ?? []).sort(
+  const events = (data?.events ?? []).sort(
     (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
   )
 
@@ -171,7 +171,7 @@ export function TimelineView({ projectId }: TimelineViewProps) {
 
       {showAddForm && (
         <AddEventForm
-          timelineId={projectId}
+          projectId={projectId}
           onClose={() => setShowAddForm(false)}
         />
       )}

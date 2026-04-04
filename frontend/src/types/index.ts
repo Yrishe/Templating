@@ -89,6 +89,14 @@ export interface TimelineEvent {
   created_at: string
 }
 
+export interface Timeline {
+  id: string
+  project: string
+  events: TimelineEvent[]
+  created_at: string
+  updated_at: string
+}
+
 export interface InvitedAccount {
   id: string
   project: string
@@ -116,10 +124,14 @@ export interface Recipient {
 }
 
 export interface DashboardData {
-  user: User
-  notifications: Notification[]
-  projects: Project[]
-  recent_contract_requests: ContractRequest[]
+  role: string
+  unread_notification_count: number
+  project_count: number
+  recent_notifications: Notification[]
+  recent_projects: Project[]
+  pending_contract_requests: number
+  active_contracts: number
+  account_count: number
 }
 
 export interface PaginatedResponse<T> {
