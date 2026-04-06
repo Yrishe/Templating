@@ -81,11 +81,14 @@ export function useProjectContract(projectId: string) {
 export function useCreateContract() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: Partial<Contract>) => api.post<Contract>('/api/contracts/', data),
-    onSuccess: (_data, variables) => {
-      if (variables.project) {
-        queryClient.invalidateQueries({ queryKey: projectKeys.contract(variables.project) })
+    mutationFn: (data: FormData | Partial<Contract>) => {
+      if (data instanceof FormData) {
+        return api.postForm<Contract>('/api/contracts/', data)
       }
+      return api.post<Contract>('/api/contracts/', data)
+    },
+    onSuccess: (contract) => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.contract(contract.project) })
     },
   })
 }
@@ -93,8 +96,23 @@ export function useCreateContract() {
 export function useUpdateContract(contractId: string, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: Partial<Contract>) =>
-      api.patch<Contract>(`/api/contracts/${contractId}/`, data),
+    mutationFn: (data: FormData | Partial<Contract>) => {
+      if (data instanceof FormData) {
+        return api.patchForm<Contract>(`/api/contracts/${contractId}/`, data)
+      }
+      return api.patch<Contract>(`/api/contracts/${contractId}/`, data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.contract(projectId) })
+    },
+  })
+}
+
+export function useActivateContract(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (contractId: string) =>
+      api.post<Contract>(`/api/contracts/${contractId}/activate/`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.contract(projectId) })
     },
@@ -124,21 +142,25 @@ export function useCreateContractRequest() {
   })
 }
 
-export function useReviewContractRequest() {
+export function useApproveContractRequest(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({
-      id,
-      status,
-    }: {
-      id: string
-      status: 'approved' | 'rejected'
-      projectId: string
-    }) => api.patch<ContractRequest>(`/api/contract-requests/${id}/`, { status }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.contractRequests(variables.projectId),
-      })
+    mutationFn: (id: string) =>
+      api.post<ContractRequest>(`/api/contract-requests/${id}/approve/`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.contractRequests(projectId) })
+      queryClient.invalidateQueries({ queryKey: projectKeys.contract(projectId) })
+    },
+  })
+}
+
+export function useRejectContractRequest(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<ContractRequest>(`/api/contract-requests/${id}/reject/`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.contractRequests(projectId) })
     },
   })
 }

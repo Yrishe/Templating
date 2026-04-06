@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsManager, IsProjectMember
+from accounts.permissions import IsAccount, IsManager, IsProjectMember
 
 from .models import Project, ProjectMembership, Timeline, TimelineEvent
 from .serializers import (
@@ -30,21 +30,31 @@ class ProjectListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return (
-            Project.objects.filter(memberships__user=user)
-            .select_related("account")
-            .prefetch_related("memberships__user")
-            .distinct()
-        )
+        base_qs = Project.objects.select_related("account").prefetch_related("memberships__user")
+        # Managers see all projects as a team overview
+        if user.role == user.MANAGER:
+            return base_qs.all()
+        return base_qs.filter(memberships__user=user).distinct()
 
     def perform_create(self, serializer):
-        project: Project = serializer.save()
-        # Automatically add creator as a member
-        ProjectMembership.objects.get_or_create(project=project, user=self.request.user)
-        # Create default timeline and chat
+        user = self.request.user
+        if user.role != user.ACCOUNT:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only account users can create projects.")
+        # Auto-assign (or create) the user's Account profile
+        from accounts.models import Account
+        account, _ = Account.objects.get_or_create(
+            subscriber=user,
+            defaults={"name": user.get_full_name() or user.email, "email": user.email},
+        )
+        project: Project = serializer.save(account=account)
+        # Add creator as member and auto-provision linked resources
+        ProjectMembership.objects.get_or_create(project=project, user=user)
         Timeline.objects.get_or_create(project=project)
         from chat.models import Chat
         Chat.objects.get_or_create(project=project)
+        from email_organiser.models import EmailOrganiser
+        EmailOrganiser.objects.get_or_create(project=project)
 
 
 class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -107,7 +117,7 @@ class ProjectMemberAddView(APIView):
             raise NotFound("Project not found.")
 
         is_manager = request.user.role == request.user.MANAGER
-        is_account_owner = project.account.subscriber == request.user
+        is_account_owner = project.account.subscriber_id == request.user.pk
         if not (is_manager or is_account_owner):
             raise PermissionDenied("Only managers or account owners can add members.")
 

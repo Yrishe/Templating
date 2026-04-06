@@ -39,7 +39,7 @@
     "model": "accounts.user",
     "pk": "11111111-1111-1111-1111-111111111201",
     "fields": {
-      "password": "pbkdf2_sha256$600000$seed$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "password": "password123",
       "last_login": null,
       "is_superuser": false,
       "first_name": "Sarah",

@@ -6,13 +6,23 @@ from .models import Contract, ContractRequest
 
 
 class ContractSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Contract
         fields = [
-            "id", "project", "title", "content", "status",
+            "id", "project", "title", "file", "file_url", "content", "status",
             "created_by", "created_at", "updated_at", "activated_at",
         ]
-        read_only_fields = ["id", "created_by", "created_at", "updated_at", "activated_at"]
+        read_only_fields = ["id", "file_url", "created_by", "created_at", "updated_at", "activated_at"]
+
+    def get_file_url(self, obj: Contract) -> str | None:
+        if not obj.file:
+            return None
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.file.url)
+        return obj.file.url
 
     def create(self, validated_data):
         validated_data["created_by"] = self.context["request"].user

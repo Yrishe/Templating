@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
     label: 'New Project',
     href: ROUTES.NEW_PROJECT,
     icon: PlusCircle,
-    roles: [USER_ROLES.MANAGER, USER_ROLES.SUBSCRIBER],
+    roles: [USER_ROLES.ACCOUNT],
   },
   {
     label: 'Email Organiser',

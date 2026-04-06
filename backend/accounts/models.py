@@ -33,12 +33,13 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     MANAGER = "manager"
-    SUBSCRIBER = "subscriber"
+    ACCOUNT = "account"
+    SUBSCRIBER = "account"  # backward-compat alias
     INVITED_ACCOUNT = "invited_account"
 
     ROLE_CHOICES = [
         (MANAGER, "Manager"),
-        (SUBSCRIBER, "Subscriber"),
+        (ACCOUNT, "Account"),
         (INVITED_ACCOUNT, "Invited Account"),
     ]
 
@@ -49,7 +50,7 @@ class User(AbstractUser):
     username = None  # type: ignore[assignment]
     email = models.EmailField(unique=True)
 
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=SUBSCRIBER)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ACCOUNT)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []
@@ -72,7 +73,7 @@ class Account(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="accounts",
-        limit_choices_to={"role": User.SUBSCRIBER},
+        limit_choices_to={"role": User.ACCOUNT},
     )
     name = models.CharField(max_length=255)
     email = models.EmailField()

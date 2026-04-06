@@ -1,4 +1,4 @@
-export type UserRole = 'manager' | 'subscriber' | 'invited_account'
+export type UserRole = 'manager' | 'account' | 'invited_account'
 
 export interface User {
   id: string
@@ -6,6 +6,7 @@ export interface User {
   first_name: string
   last_name: string
   role: UserRole
+  is_active: boolean
 }
 
 export interface Account {
@@ -38,6 +39,8 @@ export interface Contract {
   id: string
   project: string
   title: string
+  file: string | null
+  file_url: string | null
   content: string
   status: ContractStatus
   created_by: string
@@ -151,7 +154,7 @@ export interface SignupData {
   password: string
   first_name: string
   last_name: string
-  role: UserRole
+  role: 'account' | 'manager'
 }
 
 export interface AuthResponse {

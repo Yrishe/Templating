@@ -21,8 +21,20 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Passwords do not match."})
         return attrs
 
+    def validate_role(self, value):
+        if value == User.INVITED_ACCOUNT:
+            raise serializers.ValidationError(
+                "Invited Accounts are added by a Manager, not via self-registration."
+            )
+        return value
+
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        user = User.objects.create_user(**validated_data)
+        # Manager accounts require admin approval — disable until approved
+        if user.role == User.MANAGER:
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+        return user
 
 
 class UserLoginSerializer(serializers.Serializer):

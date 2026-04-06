@@ -20,7 +20,7 @@ export function ProjectsContent() {
     p.name.toLowerCase().includes(search.toLowerCase())
   )
 
-  const canCreate = user?.role === 'manager' || user?.role === 'subscriber'
+  const canCreate = user?.role === 'account'
   const canDelete = user?.role === 'manager'
 
   return (

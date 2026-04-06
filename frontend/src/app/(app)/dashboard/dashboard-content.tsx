@@ -29,7 +29,7 @@ export function DashboardContent() {
             Here&apos;s what&apos;s happening across your projects.
           </p>
         </div>
-        {(user?.role === 'manager' || user?.role === 'subscriber') && (
+        {(user?.role === 'manager' || user?.role === 'account') && (
           <Link href={ROUTES.NEW_PROJECT}>
             <Button size="sm">
               <PlusCircle className="h-4 w-4 mr-2" />
@@ -109,7 +109,7 @@ export function DashboardContent() {
             <div className="text-center py-12 border-2 border-dashed rounded-lg">
               <FolderOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-sm text-muted-foreground">No projects yet</p>
-              {(user?.role === 'manager' || user?.role === 'subscriber') && (
+              {(user?.role === 'manager' || user?.role === 'account') && (
                 <Link href={ROUTES.NEW_PROJECT}>
                   <Button variant="outline" size="sm" className="mt-3">
                     Create your first project

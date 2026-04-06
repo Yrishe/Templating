@@ -16,15 +16,18 @@ class IsManager(BasePermission):
         )
 
 
-class IsSubscriber(BasePermission):
-    """Allow access only to users with the SUBSCRIBER role."""
+class IsAccount(BasePermission):
+    """Allow access only to users with the ACCOUNT role."""
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         return bool(
             request.user
             and request.user.is_authenticated
-            and request.user.role == request.user.SUBSCRIBER
+            and request.user.role == request.user.ACCOUNT
         )
+
+
+IsSubscriber = IsAccount  # backward-compat alias
 
 
 class IsInvitedAccount(BasePermission):

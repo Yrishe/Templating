@@ -4,6 +4,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class Contract(models.Model):
@@ -24,7 +25,8 @@ class Contract(models.Model):
         related_name="contract",
     )
     title = models.CharField(max_length=255)
-    content = models.TextField()
+    file = models.FileField(upload_to="contracts/", null=True, blank=True)
+    content = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=DRAFT)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

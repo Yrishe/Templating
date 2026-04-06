@@ -4,10 +4,20 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 const mockUser = {
   id: 'user-1',
-  email: 'manager@example.com',
+  email: 'account@example.com',
   first_name: 'Alice',
+  last_name: 'Account',
+  role: 'account' as const,
+  is_active: true,
+}
+
+const mockManager = {
+  id: 'user-2',
+  email: 'manager@example.com',
+  first_name: 'Bob',
   last_name: 'Manager',
   role: 'manager' as const,
+  is_active: true,
 }
 
 const mockProjects = [
@@ -36,7 +46,9 @@ const mockContracts = [
     id: 'contract-1',
     project: 'proj-1',
     title: 'Vendor Agreement 2026',
-    content: 'This agreement is entered into by...',
+    file: null,
+    file_url: null,
+    content: '',
     status: 'active' as const,
     created_by: 'user-1',
     created_at: '2026-01-20T10:00:00Z',
@@ -163,13 +175,24 @@ export const handlers = [
   }),
 
   http.post(`${API}/api/contracts/`, async ({ request }) => {
-    const body = await request.json() as Record<string, string>
+    const contentType = request.headers.get('content-type') ?? ''
+    let body: Record<string, string> = {}
+    if (contentType.includes('multipart')) {
+      const formData = await request.formData()
+      formData.forEach((v, k) => { if (typeof v === 'string') body[k] = v })
+    } else {
+      body = await request.json() as Record<string, string>
+    }
     const contract = {
       id: `contract-${Date.now()}`,
+      file: null,
+      file_url: null,
+      content: '',
       created_by: 'user-1',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       activated_at: null,
+      status: 'draft',
       ...body,
     }
     return HttpResponse.json(contract, { status: 201 })
@@ -178,8 +201,21 @@ export const handlers = [
   http.patch(`${API}/api/contracts/:id/`, async ({ request, params }) => {
     const contract = mockContracts.find((c) => c.id === params.id)
     if (!contract) return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
-    const body = await request.json() as Record<string, unknown>
+    const contentType = request.headers.get('content-type') ?? ''
+    let body: Record<string, unknown> = {}
+    if (contentType.includes('multipart')) {
+      const formData = await request.formData()
+      formData.forEach((v, k) => { if (typeof v === 'string') body[k] = v })
+    } else {
+      body = await request.json() as Record<string, unknown>
+    }
     return HttpResponse.json({ ...contract, ...body, updated_at: new Date().toISOString() })
+  }),
+
+  http.post(`${API}/api/contracts/:id/activate/`, ({ params }) => {
+    const contract = mockContracts.find((c) => c.id === params.id)
+    if (!contract) return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+    return HttpResponse.json({ ...contract, status: 'active', activated_at: new Date().toISOString() })
   }),
 
   // ── Contract Requests ───────────────────────────────────────────────────
@@ -210,6 +246,18 @@ export const handlers = [
     if (!req) return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
     const body = await request.json() as Record<string, unknown>
     return HttpResponse.json({ ...req, ...body })
+  }),
+
+  http.post(`${API}/api/contract-requests/:id/approve/`, ({ params }) => {
+    const req = mockContractRequests.find((r) => r.id === params.id)
+    if (!req) return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+    return HttpResponse.json({ ...req, status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: 'user-2' })
+  }),
+
+  http.post(`${API}/api/contract-requests/:id/reject/`, ({ params }) => {
+    const req = mockContractRequests.find((r) => r.id === params.id)
+    if (!req) return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+    return HttpResponse.json({ ...req, status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: 'user-2' })
   }),
 
   // ── Notifications ────────────────────────────────────────────────────────

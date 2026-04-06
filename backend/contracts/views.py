@@ -16,6 +16,13 @@ from .serializers import ContractRequestSerializer, ContractSerializer
 class ContractListCreateView(generics.ListCreateAPIView):
     serializer_class = ContractSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = []  # set per-request in get_parsers
+
+    def get_parsers(self):
+        from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+        if self.request.method in ("POST",):
+            return [MultiPartParser(), FormParser()]
+        return [JSONParser()]
 
     def get_queryset(self):
         user = self.request.user
@@ -24,8 +31,9 @@ class ContractListCreateView(generics.ListCreateAPIView):
         return Contract.objects.filter(project__in=member_project_ids).select_related("project", "created_by")
 
     def create(self, request, *args, **kwargs):
-        if request.user.role != request.user.MANAGER:
-            raise PermissionDenied("Only managers can create contracts.")
+        # Accounts upload contracts; managers can also create them
+        if request.user.role not in (request.user.ACCOUNT, request.user.MANAGER):
+            raise PermissionDenied("Only account users or managers can create contracts.")
         return super().create(request, *args, **kwargs)
 
 
@@ -43,6 +51,13 @@ class ContractDetailView(generics.RetrieveUpdateAPIView):
         if request.user.role != request.user.MANAGER:
             raise PermissionDenied("Only managers can edit contracts.")
         return super().update(request, *args, **kwargs)
+
+    def get_parsers(self):
+        # Support multipart for file uploads
+        from rest_framework.parsers import FormParser, MultiPartParser
+        if self.request.method in ("PUT", "PATCH", "POST"):
+            return [MultiPartParser(), FormParser()]
+        return super().get_parsers()
 
 
 class ContractActivateView(APIView):
@@ -67,12 +82,17 @@ class ContractRequestListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        qs = ContractRequest.objects.select_related("account", "project", "reviewed_by")
         if user.role == user.MANAGER:
-            return ContractRequest.objects.all().select_related("account", "project", "reviewed_by")
-        # Subscribers see requests for their own accounts
-        return ContractRequest.objects.filter(account__subscriber=user).select_related(
-            "account", "project", "reviewed_by"
-        )
+            return qs.all()
+        # Accounts see requests linked to their own account records
+        return qs.filter(account__subscriber=user)
+
+    def perform_create(self, serializer):
+        cr = serializer.save()
+        # Notify managers of the new contract request
+        from notifications.tasks import create_contract_request_notification
+        create_contract_request_notification.delay(str(cr.pk))
 
 
 class ContractRequestDetailView(generics.RetrieveUpdateAPIView):
@@ -100,6 +120,17 @@ class ContractRequestApproveView(APIView):
         cr.reviewed_by = request.user
         cr.reviewed_at = timezone.now()
         cr.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+
+        # Auto-activate the project's contract
+        try:
+            contract = Contract.objects.get(project=cr.project)
+            if contract.status == Contract.DRAFT:
+                contract.status = Contract.ACTIVE
+                contract.activated_at = timezone.now()
+                contract.save(update_fields=["status", "activated_at"])
+        except Contract.DoesNotExist:
+            pass
+
         # Trigger notification async
         from notifications.tasks import create_contract_request_notification
         create_contract_request_notification.delay(str(cr.pk))
