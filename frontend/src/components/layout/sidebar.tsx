@@ -6,14 +6,14 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   FolderOpen,
-  PlusCircle,
   Mail,
   Settings,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
-import { ROUTES, USER_ROLES } from '@/lib/constants'
+import { ROUTES } from '@/lib/constants'
 
 interface NavItem {
   label: string
@@ -34,12 +34,6 @@ const navItems: NavItem[] = [
     icon: FolderOpen,
   },
   {
-    label: 'New Project',
-    href: ROUTES.NEW_PROJECT,
-    icon: PlusCircle,
-    roles: [USER_ROLES.ACCOUNT],
-  },
-  {
     label: 'Email Organiser',
     href: '/email-organiser',
     icon: Mail,
@@ -52,6 +46,7 @@ const navItems: NavItem[] = [
 ]
 
 export function Sidebar() {
+  const [collapsed, setCollapsed] = React.useState(false)
   const pathname = usePathname()
   const { user } = useAuth()
 
@@ -62,8 +57,28 @@ export function Sidebar() {
   })
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r bg-background min-h-[calc(100vh-3.5rem)]">
-      <nav className="flex flex-col gap-1 p-4">
+    <aside
+      className={cn(
+        'hidden lg:flex flex-col border-r bg-background min-h-[calc(100vh-3.5rem)] transition-all duration-200 overflow-hidden',
+        collapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Collapse toggle */}
+      <div className={cn('flex p-2 pt-3', collapsed ? 'justify-center' : 'justify-end')}>
+        <button
+          onClick={() => setCollapsed((v) => !v)}
+          className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+
+      <nav className="flex flex-col gap-1 px-2 pb-4">
         {filteredItems.map((item) => {
           const Icon = item.icon
           const isActive =
@@ -74,16 +89,18 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              title={collapsed ? item.label : undefined}
+              aria-label={collapsed ? item.label : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                collapsed ? 'justify-center gap-0 px-2' : 'gap-3',
                 isActive
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              <span className="flex-1">{item.label}</span>
-              {isActive && <ChevronRight className="h-4 w-4" />}
+              {!collapsed && <span className="flex-1">{item.label}</span>}
             </Link>
           )
         })}
@@ -97,7 +114,6 @@ export function MobileSidebar() {
   const pathname = usePathname()
   const { user } = useAuth()
 
-  // Close on route change
   React.useEffect(() => {
     setIsOpen(false)
   }, [pathname])

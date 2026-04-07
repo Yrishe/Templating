@@ -8,14 +8,20 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAccount, IsManager, IsProjectMember
 
-from .models import Project, ProjectMembership, Timeline, TimelineEvent
+from .models import Project, ProjectMembership, Tag, Timeline, TimelineEvent
 from .serializers import (
     ProjectDetailSerializer,
     ProjectMembershipSerializer,
     ProjectSerializer,
+    TagSerializer,
     TimelineEventSerializer,
     TimelineSerializer,
 )
+
+
+# Auto-generated inbound mailbox suffix — see Phase 3 (8) design notes for the
+# real domain to use once SES Inbound is wired up.
+PROJECT_INBOUND_DOMAIN = "inbound.contractmgr.app"
 
 
 class ProjectListCreateView(generics.ListCreateAPIView):
@@ -48,6 +54,10 @@ class ProjectListCreateView(generics.ListCreateAPIView):
             defaults={"name": user.get_full_name() or user.email, "email": user.email},
         )
         project: Project = serializer.save(account=account)
+        # Auto-generate the inbound mailbox address — replaces manual entry on
+        # the create form. Uses the first 8 chars of the UUID for a short slug.
+        project.generic_email = f"proj-{str(project.id)[:8]}@{PROJECT_INBOUND_DOMAIN}"
+        project.save(update_fields=["generic_email"])
         # Add creator as member and auto-provision linked resources
         ProjectMembership.objects.get_or_create(project=project, user=user)
         Timeline.objects.get_or_create(project=project)
@@ -108,6 +118,13 @@ class TimelineEventCreateView(generics.CreateAPIView):
 
 
 class ProjectMemberAddView(APIView):
+    """Invite a user to a project — only registered users can be added.
+
+    The serializer accepts either `user_id` (uuid) or `email`. If the email
+    does not match a registered User, the request is rejected with 400, so
+    invitations cannot be sent to addresses without an account.
+    """
+
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request: Request, project_id) -> Response:
@@ -125,3 +142,27 @@ class ProjectMemberAddView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(project=project)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class TagListCreateView(generics.ListCreateAPIView):
+    """List all tags and let any authenticated user create new ones."""
+
+    serializer_class = TagSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Tag.objects.all()
+    pagination_class = None
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class TagDetailView(generics.RetrieveDestroyAPIView):
+    """Retrieve or delete a tag — delete is manager-only."""
+
+    serializer_class = TagSerializer
+    queryset = Tag.objects.all()
+
+    def get_permissions(self):
+        if self.request.method == "DELETE":
+            return [permissions.IsAuthenticated(), IsManager()]
+        return [permissions.IsAuthenticated()]

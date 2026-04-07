@@ -18,12 +18,23 @@ export interface Account {
   updated_at: string
 }
 
+export type ProjectStatus = 'active' | 'completed' | 'archived'
+
+export interface Tag {
+  id: string
+  name: string
+  color: string
+  created_at: string
+}
+
 export interface Project {
   id: string
   account: string
   name: string
   description: string
   generic_email: string
+  status: ProjectStatus
+  tags: Tag[]
   created_at: string
   updated_at: string
 }
@@ -61,7 +72,12 @@ export interface ContractRequest {
   reviewed_by: string | null
 }
 
-export type NotificationType = 'contract_request' | 'manager_alert' | 'system'
+export type NotificationType =
+  | 'contract_request'
+  | 'contract_update'
+  | 'chat_message'
+  | 'manager_alert'
+  | 'system'
 export interface Notification {
   id: string
   project: string
@@ -107,16 +123,32 @@ export interface InvitedAccount {
   invited_at: string
 }
 
-export type FinalResponseStatus = 'draft' | 'sent'
+export type FinalResponseStatus = 'draft' | 'suggested' | 'sent'
 export interface FinalResponse {
   id: string
   email_organiser: string
   edited_by: string | null
+  source_incoming_email: string | null
   subject: string
   content: string
   status: FinalResponseStatus
+  is_ai_generated: boolean
   created_at: string
   sent_at: string | null
+}
+
+export interface IncomingEmail {
+  id: string
+  project: string
+  sender_email: string
+  sender_name: string
+  subject: string
+  body_plain: string
+  body_html: string
+  message_id: string
+  received_at: string
+  is_processed: boolean
+  created_at: string
 }
 
 export interface Recipient {
@@ -130,11 +162,13 @@ export interface DashboardData {
   role: string
   unread_notification_count: number
   project_count: number
+  completed_projects: number
   recent_notifications: Notification[]
   recent_projects: Project[]
   pending_contract_requests: number
   active_contracts: number
   account_count: number
+  pending_manager_count: number
 }
 
 export interface PaginatedResponse<T> {

@@ -132,3 +132,56 @@ class AccountDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Account.objects.filter(subscriber=self.request.user).select_related("subscriber")
+
+
+# ─── Manager-approves-Manager workflow ─────────────────────────────────────
+# Replaces the previous admin-only approval gate. New manager signups land in
+# `is_active=False` (set by UserRegistrationSerializer.create) and must be
+# approved by an existing active manager via the endpoints below.
+
+class _IsActiveManager(permissions.BasePermission):
+    """Permission: only logged-in, *active* managers may approve other managers."""
+
+    def has_permission(self, request: Request, view) -> bool:
+        u = request.user
+        return bool(u and u.is_authenticated and u.role == User.MANAGER and u.is_active)
+
+
+class PendingManagerListView(generics.ListAPIView):
+    """List all manager signups awaiting approval (active managers only)."""
+
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated, _IsActiveManager]
+    pagination_class = None
+
+    def get_queryset(self):
+        return User.objects.filter(role=User.MANAGER, is_active=False).order_by("date_joined")
+
+
+class PendingManagerApproveView(APIView):
+    """Activate a pending manager account."""
+
+    permission_classes = [permissions.IsAuthenticated, _IsActiveManager]
+
+    def post(self, request: Request, pk) -> Response:
+        try:
+            target = User.objects.get(pk=pk, role=User.MANAGER, is_active=False)
+        except User.DoesNotExist:
+            return Response({"detail": "Pending manager not found."}, status=status.HTTP_404_NOT_FOUND)
+        target.is_active = True
+        target.save(update_fields=["is_active"])
+        return Response(UserProfileSerializer(target).data, status=status.HTTP_200_OK)
+
+
+class PendingManagerRejectView(APIView):
+    """Reject (delete) a pending manager account."""
+
+    permission_classes = [permissions.IsAuthenticated, _IsActiveManager]
+
+    def post(self, request: Request, pk) -> Response:
+        try:
+            target = User.objects.get(pk=pk, role=User.MANAGER, is_active=False)
+        except User.DoesNotExist:
+            return Response({"detail": "Pending manager not found."}, status=status.HTTP_404_NOT_FOUND)
+        target.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

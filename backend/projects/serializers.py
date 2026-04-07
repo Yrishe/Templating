@@ -4,7 +4,14 @@ from rest_framework import serializers
 
 from accounts.serializers import UserProfileSerializer
 
-from .models import Project, ProjectMembership, Timeline, TimelineEvent
+from .models import Project, ProjectMembership, Tag, Timeline, TimelineEvent
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ["id", "name", "color", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
 
 class TimelineEventSerializer(serializers.ModelSerializer):
@@ -25,27 +32,71 @@ class TimelineSerializer(serializers.ModelSerializer):
 
 class ProjectMembershipSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)
-    user_id = serializers.UUIDField(write_only=True)
+    user_id = serializers.UUIDField(write_only=True, required=False)
+    email = serializers.EmailField(write_only=True, required=False)
 
     class Meta:
         model = ProjectMembership
-        fields = ["id", "project", "user", "user_id", "joined_at"]
+        fields = ["id", "project", "user", "user_id", "email", "joined_at"]
         read_only_fields = ["id", "project", "joined_at", "user"]
+
+    def validate(self, attrs):
+        if not attrs.get("user_id") and not attrs.get("email"):
+            raise serializers.ValidationError("Either user_id or email is required.")
+        return attrs
 
     def create(self, validated_data):
         from accounts.models import User
 
-        user_id = validated_data.pop("user_id")
-        user = User.objects.get(pk=user_id)
+        user_id = validated_data.pop("user_id", None)
+        email = validated_data.pop("email", None)
+
+        if user_id:
+            try:
+                user = User.objects.get(pk=user_id)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"user_id": "No registered user found with this ID."}
+                )
+        else:
+            try:
+                user = User.objects.get(email__iexact=email)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"email": "No registered user found with this email address."}
+                )
+
         validated_data["user"] = user
         return super().create(validated_data)
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)
+    # Write-only field accepting a list of tag UUIDs to attach during create/update.
+    tag_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Tag.objects.all(),
+        write_only=True,
+        required=False,
+        source="tags",
+    )
+
     class Meta:
         model = Project
-        fields = ["id", "account", "name", "description", "generic_email", "created_at", "updated_at"]
-        read_only_fields = ["id", "account", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "account",
+            "name",
+            "description",
+            "generic_email",
+            "status",
+            "tags",
+            "tag_ids",
+            "created_at",
+            "updated_at",
+        ]
+        # generic_email is auto-generated server-side; never user-supplied
+        read_only_fields = ["id", "account", "generic_email", "created_at", "updated_at"]
 
 
 class ProjectDetailSerializer(ProjectSerializer):

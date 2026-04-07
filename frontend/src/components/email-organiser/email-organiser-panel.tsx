@@ -8,22 +8,13 @@ import { Button } from '@/components/ui/button'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
-import type { PaginatedResponse } from '@/types'
-
-interface EmailItem {
-  id: string
-  subject: string
-  from: string
-  body: string
-  received_at: string
-  is_processed: boolean
-}
+import type { IncomingEmail, PaginatedResponse } from '@/types'
 
 interface EmailOrganiserPanelProps {
   projectId: string
 }
 
-function EmailItemRow({ email }: { email: EmailItem }) {
+function EmailItemRow({ email }: { email: IncomingEmail }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -37,13 +28,19 @@ function EmailItemRow({ email }: { email: EmailItem }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="font-medium text-sm truncate">{email.subject}</span>
+            <span className="font-medium text-sm truncate">
+              {email.subject || '(no subject)'}
+            </span>
             {email.is_processed && (
-              <Badge variant="success" className="text-[10px] shrink-0">Processed</Badge>
+              <Badge variant="outline" className="text-[10px] shrink-0">
+                AI replied
+              </Badge>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="truncate">From: {email.from}</span>
+            <span className="truncate">
+              From: {email.sender_name || email.sender_email}
+            </span>
             <span className="shrink-0">{formatRelativeTime(email.received_at)}</span>
           </div>
         </div>
@@ -55,7 +52,7 @@ function EmailItemRow({ email }: { email: EmailItem }) {
       </button>
       {expanded && (
         <div className="border-t bg-muted/20 p-3">
-          <p className="text-sm whitespace-pre-wrap">{email.body}</p>
+          <p className="text-sm whitespace-pre-wrap">{email.body_plain}</p>
         </div>
       )}
     </div>
@@ -64,8 +61,11 @@ function EmailItemRow({ email }: { email: EmailItem }) {
 
 export function EmailOrganiserPanel({ projectId }: EmailOrganiserPanelProps) {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ['emails', projectId],
-    queryFn: () => api.get<PaginatedResponse<EmailItem>>(`/api/emails/?project=${projectId}`),
+    queryKey: ['incoming-emails', projectId],
+    queryFn: () =>
+      api.get<PaginatedResponse<IncomingEmail>>(
+        `/api/projects/${projectId}/incoming-emails/`
+      ),
     refetchInterval: 60_000,
   })
 

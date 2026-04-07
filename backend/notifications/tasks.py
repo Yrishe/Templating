@@ -57,6 +57,46 @@ def send_notification_email(self, notification_id: str) -> None:
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
+def create_chat_message_notification(self, message_id: str) -> None:
+    """Create a Notification when a new chat message is posted to a project."""
+    from chat.models import Message
+    from notifications.models import Notification
+
+    try:
+        message = Message.objects.select_related("chat__project").get(pk=message_id)
+    except Message.DoesNotExist:
+        logger.error("create_chat_message_notification: message %s not found", message_id)
+        return
+
+    Notification.objects.create(
+        project=message.chat.project,
+        type=Notification.CHAT_MESSAGE,
+    )
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+def create_contract_update_notification(self, contract_id: str, action: str = "updated") -> None:
+    """Create a Notification when a project's contract is created/updated/activated.
+
+    `action` is currently informational only — kept on the signature so callers can
+    distinguish create vs update vs activate when richer notification copy is added.
+    """
+    from contracts.models import Contract
+    from notifications.models import Notification
+
+    try:
+        contract = Contract.objects.select_related("project").get(pk=contract_id)
+    except Contract.DoesNotExist:
+        logger.error("create_contract_update_notification: contract %s not found", contract_id)
+        return
+
+    Notification.objects.create(
+        project=contract.project,
+        type=Notification.CONTRACT_UPDATE,
+    )
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
 def create_contract_request_notification(self, contract_request_id: str) -> None:
     """Create a Notification triggered by a ContractRequest status change."""
     from contracts.models import ContractRequest

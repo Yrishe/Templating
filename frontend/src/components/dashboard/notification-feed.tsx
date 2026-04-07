@@ -1,7 +1,16 @@
 'use client'
 
 import React from 'react'
-import { Bell, Check, CheckCheck, AlertCircle, FileText, Info } from 'lucide-react'
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  AlertCircle,
+  FileText,
+  FilePen,
+  MessageSquare,
+  Info,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,10 +18,22 @@ import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead 
 import { formatRelativeTime } from '@/lib/utils'
 import type { Notification } from '@/types'
 
+// Only project-focused notification types are shown in the dashboard feed.
+// `system` and `manager_alert` still appear in the navbar bell dropdown.
+const PROJECT_FOCUSED_TYPES: Notification['type'][] = [
+  'contract_request',
+  'contract_update',
+  'chat_message',
+]
+
 function NotificationIcon({ type }: { type: Notification['type'] }) {
   switch (type) {
     case 'contract_request':
       return <FileText className="h-4 w-4 text-blue-500" />
+    case 'contract_update':
+      return <FilePen className="h-4 w-4 text-purple-500" />
+    case 'chat_message':
+      return <MessageSquare className="h-4 w-4 text-green-500" />
     case 'manager_alert':
       return <AlertCircle className="h-4 w-4 text-yellow-500" />
     case 'system':
@@ -25,6 +46,8 @@ function NotificationItem({ notification }: { notification: Notification }) {
 
   const typeLabels: Record<Notification['type'], string> = {
     contract_request: 'Contract Request',
+    contract_update: 'Contract Update',
+    chat_message: 'New Message',
     manager_alert: 'Manager Alert',
     system: 'System',
   }
@@ -69,7 +92,13 @@ function NotificationItem({ notification }: { notification: Notification }) {
 export function NotificationFeed() {
   const { data, isLoading, isError } = useNotifications()
   const markAllRead = useMarkAllNotificationsRead()
-  const notifications = data?.results ?? []
+  const allNotifications = data?.results ?? []
+  // Filter to project-focused types only — the dashboard intentionally hides
+  // `system` / `manager_alert` to reduce noise. Those still appear in the
+  // navbar bell dropdown for users who want the full feed.
+  const notifications = allNotifications.filter((n) =>
+    PROJECT_FOCUSED_TYPES.includes(n.type)
+  )
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
   return (

@@ -20,13 +20,20 @@ const mockManager = {
   is_active: true,
 }
 
+const mockTags = [
+  { id: 'tag-1', name: 'urgent', color: '#EF4444', created_at: '2026-01-10T10:00:00Z' },
+  { id: 'tag-2', name: 'low-priority', color: '#6B7280', created_at: '2026-01-10T10:00:00Z' },
+]
+
 const mockProjects = [
   {
     id: 'proj-1',
     account: 'acc-1',
     name: 'Q3 Vendor Agreement',
     description: 'Annual vendor contract renewal',
-    generic_email: 'vendor-q3@example.com',
+    generic_email: 'proj-12345678@inbound.contractmgr.app',
+    status: 'active' as const,
+    tags: [mockTags[0]],
     created_at: '2026-01-15T10:00:00Z',
     updated_at: '2026-03-20T14:00:00Z',
   },
@@ -35,7 +42,9 @@ const mockProjects = [
     account: 'acc-1',
     name: 'Software Licence',
     description: 'Enterprise software licensing agreement',
-    generic_email: 'sw-licence@example.com',
+    generic_email: 'proj-87654321@inbound.contractmgr.app',
+    status: 'completed' as const,
+    tags: [],
     created_at: '2026-02-01T09:00:00Z',
     updated_at: '2026-03-28T11:00:00Z',
   },
@@ -125,12 +134,42 @@ export const handlers = [
   // ── Dashboard ───────────────────────────────────────────────────────────
   http.get(`${API}/api/dashboard/`, () => {
     return HttpResponse.json({
-      user: mockUser,
-      notifications: mockNotifications,
-      projects: mockProjects,
-      recent_contract_requests: mockContractRequests,
+      role: mockUser.role,
+      unread_notification_count: mockNotifications.filter((n) => !n.is_read).length,
+      project_count: mockProjects.filter((p) => p.status === 'active').length,
+      completed_projects: mockProjects.filter((p) => p.status === 'completed').length,
+      recent_notifications: mockNotifications,
+      recent_projects: mockProjects.filter((p) => p.status === 'active'),
+      pending_contract_requests: 0,
+      active_contracts: 0,
+      account_count: 0,
+      pending_manager_count: 0,
     })
   }),
+
+  // ── Tags ────────────────────────────────────────────────────────────────
+  http.get(`${API}/api/tags/`, () => HttpResponse.json(mockTags)),
+  http.post(`${API}/api/tags/`, async ({ request }) => {
+    const body = (await request.json()) as { name: string; color: string }
+    const tag = {
+      id: `tag-${Date.now()}`,
+      name: body.name,
+      color: body.color,
+      created_at: new Date().toISOString(),
+    }
+    mockTags.push(tag)
+    return HttpResponse.json(tag, { status: 201 })
+  }),
+  http.delete(`${API}/api/tags/:id/`, () => new HttpResponse(null, { status: 204 })),
+
+  // ── Pending managers (manager-approves-manager workflow) ────────────────
+  http.get(`${API}/api/auth/pending-managers/`, () => HttpResponse.json([])),
+  http.post(`${API}/api/auth/pending-managers/:pk/approve/`, () =>
+    HttpResponse.json({ ...mockManager, is_active: true })
+  ),
+  http.post(`${API}/api/auth/pending-managers/:pk/reject/`, () =>
+    new HttpResponse(null, { status: 204 })
+  ),
 
   // ── Projects ────────────────────────────────────────────────────────────
   http.get(`${API}/api/projects/`, () => {
@@ -277,6 +316,12 @@ export const handlers = [
     return HttpResponse.json({ ...notif, ...body })
   }),
 
+  http.post(`${API}/api/notifications/:id/read/`, ({ params }) => {
+    const notif = mockNotifications.find((n) => n.id === params.id)
+    if (!notif) return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+    return HttpResponse.json({ ...notif, is_read: true })
+  }),
+
   http.post(`${API}/api/notifications/mark-all-read/`, () => {
     return new HttpResponse(null, { status: 204 })
   }),
@@ -322,7 +367,14 @@ export const handlers = [
     return HttpResponse.json(paginate([]))
   }),
 
-  // ── Emails ──────────────────────────────────────────────────────────────
+  // ── Incoming Emails (Phase 3 item 8) ────────────────────────────────────
+  http.get(`${API}/api/projects/:project_id/incoming-emails/`, () =>
+    HttpResponse.json(paginate([]))
+  ),
+  http.post(`${API}/api/webhooks/inbound-email/`, () =>
+    HttpResponse.json({ detail: 'mock webhook accepted' }, { status: 201 })
+  ),
+  // Legacy endpoint kept for backwards compat in any old test files
   http.get(`${API}/api/emails/`, () => {
     return HttpResponse.json(paginate([]))
   }),

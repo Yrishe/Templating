@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import type { User, LoginCredentials, SignupData, AuthResponse } from '@/types'
+import type { User, LoginCredentials, SignupData } from '@/types'
 
 interface AuthContextValue {
   user: User | null
@@ -34,8 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshUser])
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    const response = await api.post<AuthResponse>('/api/auth/login/', credentials)
-    setUser(response.user)
+    const user = await api.post<User>('/api/auth/login/', credentials)
+    setUser(user)
   }, [])
 
   const logout = useCallback(async () => {
@@ -47,8 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signup = useCallback(async (data: SignupData) => {
-    const response = await api.post<AuthResponse>('/api/auth/signup/', data)
-    setUser(response.user)
+    const user = await api.post<User>('/api/auth/signup/', data)
+    setUser(user)
   }, [])
 
   const value: AuthContextValue = {

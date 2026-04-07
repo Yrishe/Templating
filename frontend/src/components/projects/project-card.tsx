@@ -30,6 +30,23 @@ export function ProjectCard({ project, onDelete, showDelete }: ProjectCardProps)
                 {project.description}
               </p>
             )}
+            {project.tags && project.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {project.tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border"
+                    style={{
+                      borderColor: tag.color,
+                      color: tag.color,
+                      backgroundColor: `${tag.color}15`,
+                    }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>

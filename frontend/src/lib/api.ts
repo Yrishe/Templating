@@ -10,8 +10,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   })
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}))
-    throw new Error((error as { detail?: string }).detail ?? `HTTP ${res.status}`)
+    const error = await res.json().catch(() => ({})) as Record<string, unknown>
+    // DRF returns { detail: "..." } for non-field errors, or { field: ["msg"] } for validation errors
+    if (typeof error.detail === 'string') {
+      throw new Error(error.detail)
+    }
+    const fieldMessages = Object.entries(error)
+      .flatMap(([field, msgs]) => {
+        const list = Array.isArray(msgs) ? msgs : [String(msgs)]
+        return field === 'non_field_errors' ? list : list.map((m) => `${field}: ${m}`)
+      })
+    throw new Error(fieldMessages.length ? fieldMessages.join('; ') : `HTTP ${res.status}`)
   }
   // Handle 204 No Content
   if (res.status === 204) {

@@ -2,11 +2,12 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { PlusCircle, FolderOpen, FileText } from 'lucide-react'
+import { PlusCircle, FolderOpen, FileText, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { NotificationFeed } from '@/components/dashboard/notification-feed'
 import { ProjectSummaryCard } from '@/components/dashboard/project-summary-card'
+import { PendingManagersPanel } from '@/components/dashboard/pending-managers-panel'
 import { useDashboard } from '@/hooks/use-notifications'
 import { useAuth } from '@/hooks/use-auth'
 import { ROUTES } from '@/lib/constants'
@@ -38,6 +39,9 @@ export function DashboardContent() {
           </Link>
         )}
       </div>
+
+      {/* Manager-only: pending manager approval requests */}
+      {user?.role === 'manager' && <PendingManagersPanel />}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -72,14 +76,14 @@ export function DashboardContent() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="rounded-md bg-blue-100 p-2">
-                <FileText className="h-5 w-5 text-blue-700" />
+              <div className="rounded-md bg-green-100 p-2">
+                <CheckCircle2 className="h-5 w-5 text-green-700" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {isLoading ? '—' : data?.unread_notification_count ?? 0}
+                  {isLoading ? '—' : data?.completed_projects ?? 0}
                 </p>
-                <p className="text-xs text-muted-foreground">Unread Notifications</p>
+                <p className="text-xs text-muted-foreground">Completed Projects</p>
               </div>
             </div>
           </CardContent>

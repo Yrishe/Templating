@@ -31,20 +31,25 @@ class DashboardView(APIView):
             notifications_qs[:5], many=True
         ).data
 
-        # Projects
+        # Projects — split active vs completed for dashboard stat cards
         projects_qs = Project.objects.filter(id__in=member_project_ids).select_related("account")
-        project_count = len(member_project_ids)
-        recent_projects = ProjectSerializer(projects_qs[:5], many=True).data
+        active_projects_count = projects_qs.filter(status=Project.ACTIVE).count()
+        completed_projects_count = projects_qs.filter(status=Project.COMPLETED).count()
+        recent_projects = ProjectSerializer(
+            projects_qs.filter(status=Project.ACTIVE)[:5], many=True
+        ).data
 
         payload: dict = {
             "role": user.role,
-            "unread_notification_count": unread_count,
-            "project_count": project_count,
+            "unread_notification_count": unread_count,  # kept for navbar bell badge
+            "project_count": active_projects_count,
+            "completed_projects": completed_projects_count,
             "recent_notifications": recent_notifications,
             "recent_projects": recent_projects,
             "pending_contract_requests": 0,
             "active_contracts": 0,
             "account_count": 0,
+            "pending_manager_count": 0,
         }
 
         if user.role == User.MANAGER:
@@ -55,6 +60,9 @@ class DashboardView(APIView):
             ).count()
             payload["active_contracts"] = Contract.objects.filter(
                 status=Contract.ACTIVE, project__in=member_project_ids
+            ).count()
+            payload["pending_manager_count"] = User.objects.filter(
+                role=User.MANAGER, is_active=False
             ).count()
 
         elif user.role == User.SUBSCRIBER:

@@ -36,6 +36,16 @@ class ContractListCreateView(generics.ListCreateAPIView):
             raise PermissionDenied("Only account users or managers can create contracts.")
         return super().create(request, *args, **kwargs)
 
+    def perform_create(self, serializer):
+        contract = serializer.save()
+        from notifications.tasks import create_contract_update_notification
+        create_contract_update_notification.delay(str(contract.pk), "created")
+        # Phase 3 (9): kick off PDF text extraction in the background so the
+        # contract content is available for Claude's RAG context.
+        if contract.file:
+            from contracts.tasks import extract_contract_text
+            extract_contract_text.delay(str(contract.pk))
+
 
 class ContractDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = ContractSerializer
@@ -51,6 +61,15 @@ class ContractDetailView(generics.RetrieveUpdateAPIView):
         if request.user.role != request.user.MANAGER:
             raise PermissionDenied("Only managers can edit contracts.")
         return super().update(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        contract = serializer.save()
+        from notifications.tasks import create_contract_update_notification
+        create_contract_update_notification.delay(str(contract.pk), "updated")
+        # Re-extract text whenever the file changes
+        if contract.file:
+            from contracts.tasks import extract_contract_text
+            extract_contract_text.delay(str(contract.pk))
 
     def get_parsers(self):
         # Support multipart for file uploads
@@ -73,6 +92,11 @@ class ContractActivateView(APIView):
         contract.status = Contract.ACTIVE
         contract.activated_at = timezone.now()
         contract.save(update_fields=["status", "activated_at"])
+
+        # Notify project members of the activation
+        from notifications.tasks import create_contract_update_notification
+        create_contract_update_notification.delay(str(contract.pk), "activated")
+
         return Response(ContractSerializer(contract).data)
 
 

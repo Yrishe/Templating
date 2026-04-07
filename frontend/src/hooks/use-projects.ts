@@ -8,6 +8,7 @@ import type {
   ProjectMembership,
   Timeline,
   TimelineEvent,
+  Tag,
 } from '@/types'
 
 export const projectKeys = {
@@ -39,12 +40,40 @@ export function useProject(id: string) {
   })
 }
 
+// Project create accepts an optional `tag_ids` array of Tag UUIDs to attach.
+type CreateProjectPayload = Partial<Project> & { tag_ids?: string[] }
+
 export function useCreateProject() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: Partial<Project>) => api.post<Project>('/api/projects/', data),
+    mutationFn: (data: CreateProjectPayload) =>
+      api.post<Project>('/api/projects/', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() })
+    },
+  })
+}
+
+// ─── Tags ────────────────────────────────────────────────────────────────
+export const tagKeys = {
+  all: ['tags'] as const,
+  list: () => [...tagKeys.all, 'list'] as const,
+}
+
+export function useTags() {
+  return useQuery({
+    queryKey: tagKeys.list(),
+    queryFn: () => api.get<Tag[]>('/api/tags/'),
+  })
+}
+
+export function useCreateTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { name: string; color: string }) =>
+      api.post<Tag>('/api/tags/', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.list() })
     },
   })
 }

@@ -9,17 +9,11 @@ from .models import Account, User
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, label="Confirm password")
 
     class Meta:
         model = User
-        fields = ["id", "email", "password", "password2", "role", "first_name", "last_name"]
+        fields = ["id", "email", "password", "role", "first_name", "last_name"]
         read_only_fields = ["id"]
-
-    def validate(self, attrs):
-        if attrs["password"] != attrs.pop("password2"):
-            raise serializers.ValidationError({"password": "Passwords do not match."})
-        return attrs
 
     def validate_role(self, value):
         if value == User.INVITED_ACCOUNT:

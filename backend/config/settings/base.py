@@ -215,6 +215,16 @@ CELERY_TIMEZONE = "UTC"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@management.local")
 
+# Inbound email webhook (SES Inbound / SendGrid / Postmark) — shared secret
+# the webhook caller must send in the X-Webhook-Secret header.
+INBOUND_EMAIL_WEBHOOK_SECRET = os.environ.get("INBOUND_EMAIL_WEBHOOK_SECRET", "")
+
+# Anthropic Claude API — used by the email_organiser AI suggestion task to
+# draft contract-grounded reply suggestions. If unset, the task logs a warning
+# and creates a placeholder draft instead of calling the API.
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+
 # ---------------------------------------------------------------------------
 # Internationalization
 # ---------------------------------------------------------------------------

@@ -8,11 +8,15 @@ from django.db import models
 
 class Notification(models.Model):
     CONTRACT_REQUEST = "contract_request"
+    CONTRACT_UPDATE = "contract_update"
+    CHAT_MESSAGE = "chat_message"
     MANAGER_ALERT = "manager_alert"
     SYSTEM = "system"
 
     TYPE_CHOICES = [
         (CONTRACT_REQUEST, "Contract Request"),
+        (CONTRACT_UPDATE, "Contract Update"),
+        (CHAT_MESSAGE, "Chat Message"),
         (MANAGER_ALERT, "Manager Alert"),
         (SYSTEM, "System"),
     ]

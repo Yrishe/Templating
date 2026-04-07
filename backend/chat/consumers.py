@@ -114,6 +114,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _save_message(self, user, content: str):
         from chat.models import Chat, Message
+        from notifications.tasks import create_chat_message_notification
 
         chat = Chat.objects.get(project_id=self.project_id)
-        return Message.objects.create(chat=chat, author=user, content=content)
+        message = Message.objects.create(chat=chat, author=user, content=content)
+        # Fire a project-scoped notification for the new chat message
+        create_chat_message_notification.delay(str(message.id))
+        return message

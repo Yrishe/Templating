@@ -7,6 +7,8 @@ from .views import (
     ProjectListCreateView,
     ProjectMemberAddView,
     ProjectTimelineView,
+    TagDetailView,
+    TagListCreateView,
     TimelineEventCreateView,
 )
 
@@ -16,4 +18,6 @@ urlpatterns = [
     path("projects/<uuid:project_id>/timeline/", ProjectTimelineView.as_view(), name="project-timeline"),
     path("projects/<uuid:project_id>/timeline/events/", TimelineEventCreateView.as_view(), name="timeline-event-create"),
     path("projects/<uuid:project_id>/members/", ProjectMemberAddView.as_view(), name="project-member-add"),
+    path("tags/", TagListCreateView.as_view(), name="tag-list-create"),
+    path("tags/<uuid:pk>/", TagDetailView.as_view(), name="tag-detail"),
 ]

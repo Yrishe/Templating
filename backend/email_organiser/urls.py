@@ -7,11 +7,23 @@ from .views import (
     FinalResponseDetailView,
     FinalResponseListCreateView,
     FinalResponseSendView,
+    InboundEmailWebhookView,
+    IncomingEmailListView,
     InvitedAccountListView,
     ProjectInviteView,
 )
 
 urlpatterns = [
+    path(
+        "projects/<uuid:project_id>/incoming-emails/",
+        IncomingEmailListView.as_view(),
+        name="incoming-email-list",
+    ),
+    path(
+        "webhooks/inbound-email/",
+        InboundEmailWebhookView.as_view(),
+        name="inbound-email-webhook",
+    ),
     path(
         "email-organiser/<uuid:project_id>/",
         EmailOrganiserDetailView.as_view(),

@@ -1,5 +1,10 @@
-import '@testing-library/jest-dom'
-import { server } from './src/mocks/server'
+/* eslint-disable @typescript-eslint/no-var-requires */
+// jest-fixed-jsdom (configured in jest.config.js) already provides Fetch API
+// globals (fetch / Request / Response / Headers / FormData / Blob /
+// ReadableStream) needed by MSW v2 — no manual polyfills required.
+
+require('@testing-library/jest-dom')
+const { server } = require('./src/mocks/server')
 
 // Start MSW server before all tests
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
