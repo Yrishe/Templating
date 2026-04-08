@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Send, Save, FileText, Plus, Users } from 'lucide-react'
+import { Send, Save, FileText, Plus, Users, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -134,6 +134,18 @@ function ResponseEditorForm({ response, onSaved }: ResponseEditorFormProps) {
 
   return (
     <div className="space-y-4">
+      {response.is_ai_generated && (
+        <div className="flex items-start gap-2 rounded-md border border-purple-200 bg-purple-50 p-3 text-xs text-purple-800">
+          <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <div className="font-medium">AI-suggested draft</div>
+            <div className="text-purple-700">
+              Generated from the project contract and the incoming email. Review and edit before sending.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="subject">Subject</Label>
         <Input
@@ -246,9 +258,27 @@ export function FinalResponseEditor({ projectId }: FinalResponseEditorProps) {
                   <span className="font-medium text-sm truncate max-w-[200px]">
                     {response.subject || '(No subject)'}
                   </span>
-                  <Badge variant={response.status === 'sent' ? 'success' : 'warning'} className="text-[10px]">
-                    {response.status}
+                  <Badge
+                    variant={
+                      response.status === 'sent'
+                        ? 'success'
+                        : response.status === 'suggested'
+                        ? 'default'
+                        : 'warning'
+                    }
+                    className="text-[10px]"
+                  >
+                    {response.status === 'suggested' ? 'AI suggested' : response.status}
                   </Badge>
+                  {response.is_ai_generated && response.status !== 'suggested' && (
+                    <Badge
+                      variant="default"
+                      className="text-[10px] inline-flex items-center gap-1 bg-purple-100 text-purple-700 border-purple-200"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      AI
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {response.sent_at && <span>Sent {formatDateTime(response.sent_at)}</span>}

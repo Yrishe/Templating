@@ -474,4 +474,243 @@
       </root>
     </mxGraphModel>
   </diagram>
+  <diagram name="Phase 3 — AI Reply Pipeline" id="phase3-ai-reply-pipeline">
+    <mxGraphModel dx="1536" dy="1526" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- Title -->
+        <mxCell id="p3-title" value="&lt;b&gt;Phase 3 — AI-Suggested Reply Pipeline&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#666&quot;&gt;Inbound email + PDF text extraction + Claude (narrowed-knowledge RAG)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="700" height="50" as="geometry" />
+        </mxCell>
+        <!-- ─── Lane labels ─── -->
+        <mxCell id="p3-lane-a" value="A. Contract Prep (PDF text extraction — item 9)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="380" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-lane-b" value="B. Inbound Webhook (item 8)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="500" y="90" width="380" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-lane-c" value="C. Async Claude Task (item 10)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="960" y="90" width="380" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ─── Lane A: Contract Prep ─── -->
+        <mxCell id="p3-a-1" value="Account uploads contract PDF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-2" value="POST /api/contracts/&#10;ContractListCreateView.perform_create" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-3" value="Enqueue Celery task:&#10;extract_contract_text.delay()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-4" value="pypdf reads PDF pages → joins text" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="370" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-decision" value="Empty text?&#10;(scanned PDF)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="80" y="450" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-warn" value="Log warning, exit&#10;(user can paste text manually)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="560" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-5" value="Save to Contract.content&#10;(ready for Claude RAG)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="640" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edges A -->
+        <mxCell id="p3-a-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-1" target="p3-a-2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-a-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-2" target="p3-a-3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-a-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-3" target="p3-a-4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-a-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-4" target="p3-a-decision"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-a-e5" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p3-a-decision" target="p3-a-warn"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-a-e6" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-decision" target="p3-a-5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ─── Lane B: Inbound Webhook ─── -->
+        <mxCell id="p3-b-1" value="External: client emails&#10;proj-XXXXXXXX@inbound.contractmgr.app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="520" y="130" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-2" value="SES Inbound / SendGrid / Postmark&#10;(provider receives + parses)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="200" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-3" value="POST /api/webhooks/inbound-email/&#10;InboundEmailWebhookView" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="270" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-d1" value="X-Webhook-Secret&#10;valid?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="560" y="340" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-401" value="401&#10;Unauthorized" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="820" y="355" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-d2" value="Project exists for&#10;`to` address?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="560" y="440" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-404" value="404&#10;Not Found" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="820" y="455" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-d3" value="Duplicate&#10;message_id?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="560" y="540" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-200" value="200 OK&#10;(dedup)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="820" y="555" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-4" value="Create IncomingEmail row&#10;(project FK, sender, subject, body, raw_payload)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="520" y="640" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-5" value="Enqueue generate_suggested_reply.delay()&#10;Return 201" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="520" y="720" width="280" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Edges B -->
+        <mxCell id="p3-b-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-1" target="p3-b-2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-2" target="p3-b-3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-3" target="p3-b-d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e4" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p3-b-d1" target="p3-b-401"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e5" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-d1" target="p3-b-d2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e6" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p3-b-d2" target="p3-b-404"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e7" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-d2" target="p3-b-d3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e8" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p3-b-d3" target="p3-b-200"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e9" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-d3" target="p3-b-4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-b-e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-4" target="p3-b-5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ─── Lane C: Async Claude Task ─── -->
+        <mxCell id="p3-c-1" value="Celery worker picks up&#10;generate_suggested_reply" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="980" y="130" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-2" value="Load IncomingEmail + project.contract.content&#10;(narrowed knowledge — only this project's contract)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="210" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-d" value="ANTHROPIC_API_KEY set&#10;AND anthropic SDK installed?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="300" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-3a" value="Call Claude API&#10;system = contract text (≤50k chars)&#10;user = incoming email body" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="980" y="410" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-3b" value="Build placeholder draft&#10;(graceful degradation)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="495" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-4" value="Create FinalResponse&#10;status='suggested', is_ai_generated=True&#10;source_incoming_email=&lt;id&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="980" y="570" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-5" value="Mark IncomingEmail.is_processed = True" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="660" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-6" value="User reviews / edits in Email Organiser panel,&#10;then sends via existing FinalResponseSendView" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="980" y="720" width="280" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Edges C -->
+        <mxCell id="p3-c-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-1" target="p3-c-2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-c-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-2" target="p3-c-d"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-c-e3" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-d" target="p3-c-3a"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-c-e4" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-c-d" target="p3-c-3b"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-c-e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-3a" target="p3-c-4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-c-e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-c-3b" target="p3-c-4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-c-e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-4" target="p3-c-5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-c-e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-5" target="p3-c-6"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Cross-lane dependency arrows -->
+        <mxCell id="p3-cross-1" value="enqueues" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4d4d4d;dashed=1;" edge="1" parent="1" source="p3-b-5" target="p3-c-1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="p3-cross-2" value="provides contract context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4d4d4d;dashed=1;" edge="1" parent="1" source="p3-a-5" target="p3-c-2"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Legend -->
+        <mxCell id="p3-legend-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="730" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-legend-1" value="External actor / user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="755" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-legend-2" value="Decision" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="230" y="755" width="100" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-legend-3" value="DB write" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="795" width="160" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-legend-4" value="Claude API call" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="230" y="795" width="160" height="32" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Phase 2 — Manager Approval" id="phase2-manager-approval">
+    <mxGraphModel dx="1536" dy="1526" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- Title -->
+        <mxCell id="ma-title" value="&lt;b&gt;Phase 2 — Manager-approves-Manager Workflow&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#666&quot;&gt;Replaces the previous admin-only approval gate&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="700" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ─── Lane labels ─── -->
+        <mxCell id="ma-lane-a" value="A. New manager signs up" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="450" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-lane-b" value="B. Active manager reviews and decides" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="560" y="90" width="500" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ─── Lane A ─── -->
+        <mxCell id="ma-a-1" value="Visitor submits signup form&#10;with role = 'manager'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-2" value="POST /api/auth/signup/&#10;UserRegistrationSerializer.create" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="220" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-3" value="User row created with is_active = False" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-4" value="Frontend (signup page) shows&#10;'Pending approval' screen — login is blocked&#10;until an existing manager approves" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-5" value="(blocks here until lane B resolves)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="480" width="380" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Edges A -->
+        <mxCell id="ma-a-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-a-1" target="ma-a-2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-a-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-a-2" target="ma-a-3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-a-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-a-3" target="ma-a-4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-a-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-a-4" target="ma-a-5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ─── Lane B ─── -->
+        <mxCell id="ma-b-1" value="Existing active manager opens dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="600" y="140" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-2" value="PendingManagersPanel polls&#10;GET /api/auth/pending-managers/&#10;(60 s interval)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="220" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-3" value="Yellow card renders with the pending list&#10;(name, email, requested-at, Approve / Reject buttons)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="310" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-d" value="Approve or Reject?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="660" y="400" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-approve" value="POST /api/auth/pending-managers/&#10;&lt;uuid:pk&gt;/approve/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="510" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-reject" value="POST /api/auth/pending-managers/&#10;&lt;uuid:pk&gt;/reject/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="800" y="510" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-approve-result" value="User.is_active = True&#10;Pending manager can now log in" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="590" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-reject-result" value="User row deleted&#10;Account permanently removed" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="800" y="590" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edges B -->
+        <mxCell id="ma-b-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-1" target="ma-b-2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-b-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-2" target="ma-b-3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-b-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-3" target="ma-b-d"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-b-e4" value="approve" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="ma-b-d" target="ma-b-approve"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-b-e5" value="reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="ma-b-d" target="ma-b-reject"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-b-e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-approve" target="ma-b-approve-result"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-b-e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-reject" target="ma-b-reject-result"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Cross-lane unblock arrow -->
+        <mxCell id="ma-cross-1" value="unblocks login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="ma-b-approve-result" target="ma-a-5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ma-cross-2" value="permanently removes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="ma-b-reject-result" target="ma-a-5"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
 </mxfile>
