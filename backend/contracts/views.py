@@ -28,7 +28,14 @@ class ContractListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         from projects.models import ProjectMembership
         member_project_ids = ProjectMembership.objects.filter(user=user).values_list("project_id", flat=True)
-        return Contract.objects.filter(project__in=member_project_ids).select_related("project", "created_by")
+        qs = Contract.objects.filter(project__in=member_project_ids).select_related("project", "created_by")
+        # Honour `?project=` so the per-project Contract page only sees its own
+        # contract — without this filter a fresh project would surface another
+        # project's contract instead of the upload form.
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        return qs
 
     def create(self, request, *args, **kwargs):
         # Accounts upload contracts; managers can also create them

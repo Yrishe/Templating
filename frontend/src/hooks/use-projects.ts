@@ -41,7 +41,10 @@ export function useProject(id: string) {
 }
 
 // Project create accepts an optional `tag_ids` array of Tag UUIDs to attach.
-type CreateProjectPayload = Partial<Project> & { tag_ids?: string[] }
+type CreateProjectPayload = Partial<Project> & {
+  tag_ids?: string[]
+  owner_user_id?: string
+}
 
 export function useCreateProject() {
   const queryClient = useQueryClient()
@@ -50,6 +53,10 @@ export function useCreateProject() {
       api.post<Project>('/api/projects/', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() })
+      // Refresh notifications + dashboard so a fresh project doesn't show
+      // stale entries from other projects.
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 }
@@ -72,6 +79,16 @@ export function useCreateTag() {
   return useMutation({
     mutationFn: (data: { name: string; color: string }) =>
       api.post<Tag>('/api/tags/', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.list() })
+    },
+  })
+}
+
+export function useDeleteTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/api/tags/${id}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tagKeys.list() })
     },

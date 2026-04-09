@@ -9,13 +9,20 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message, isOwn, author }: MessageBubbleProps) {
+  // WebSocket events deliver `author_email` while REST history delivers a UUID
+  // string in `author`. Fall back through the available fields so we never call
+  // `.slice` on a non-string.
+  const fallbackLabel =
+    (message as { author_email?: string }).author_email ??
+    (typeof message.author === 'string' ? message.author : '') ??
+    ''
   const initials = author
     ? getInitials(author.first_name, author.last_name)
-    : message.author.slice(0, 2).toUpperCase()
+    : (fallbackLabel.slice(0, 2) || '??').toUpperCase()
 
   const authorName = author
     ? `${author.first_name} ${author.last_name}`
-    : 'Unknown User'
+    : fallbackLabel || 'Unknown User'
 
   return (
     <div className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>

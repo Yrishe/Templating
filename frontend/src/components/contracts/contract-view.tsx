@@ -340,16 +340,10 @@ export function ContractView({ projectId }: ContractViewProps) {
             </div>
           )}
 
-          {/* Account: upload form */}
-          {isAccount && (
+          {/* Upload form — accounts always; managers when they own / have not
+              yet uploaded a contract for this project. */}
+          {(isAccount || isManager) && (
             <UploadContractForm projectId={projectId} existingContract={contract} />
-          )}
-
-          {/* No contract and not account */}
-          {!contract && !isAccount && (
-            <p className="text-sm text-muted-foreground py-2">
-              No contract has been uploaded for this project yet.
-            </p>
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.0 Safari/537.36" version="29.0.3" pages="2">
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.0 Safari/537.36" version="29.0.3" pages="5">
   <diagram name="Page-1" id="j-o2S2soWdfwRRScXvfW">
     <mxGraphModel dx="1536" dy="1526" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
       <root>
@@ -303,152 +303,483 @@
     </mxGraphModel>
   </diagram>
   <diagram name="User Journey" id="user-journey-2026">
-    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1793" dy="986" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
-        <!-- ══ TITLE ══════════════════════════════════════════════════════ -->
-        <mxCell id="uj-title" value="User Journey — Contract Management Platform" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="uj-title" value="User Journey — Contract Management Platform" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" parent="1" vertex="1">
           <mxGeometry x="300" y="20" width="1000" height="40" as="geometry" />
         </mxCell>
-
-        <!-- ══ SWIMLANE: ACCOUNT ══════════════════════════════════════════ -->
-        <mxCell id="sw-account" value="Account" style="swimlane;startSize=40;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;" vertex="1" parent="1">
-          <mxGeometry x="20" y="80" width="1600" height="220" as="geometry" />
+        <mxCell id="sw-account" value="Account" style="swimlane;startSize=40;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="20" y="80" width="1600" height="231" as="geometry" />
         </mxCell>
-
-        <!-- Account steps -->
-        <mxCell id="a1" value="Sign Up&#xa;(role: Account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="sw-account">
+        <mxCell id="a1" value="Sign Up&#xa;(role: Account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="sw-account" vertex="1">
           <mxGeometry x="20" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="a2" value="Log In" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="sw-account">
+        <mxCell id="a2" value="Log In" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="sw-account" vertex="1">
           <mxGeometry x="190" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="a3" value="Dashboard&#xa;(my projects)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="sw-account">
+        <mxCell id="a3" value="Dashboard&#xa;(my projects)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="sw-account" vertex="1">
           <mxGeometry x="360" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="a4" value="Create Project&#xa;(name + email)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="sw-account">
+        <mxCell id="a4" value="Create Project&lt;br&gt;(name + email + Invitees)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="sw-account" vertex="1">
           <mxGeometry x="530" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="a5" value="Upload&#xa;Contract PDF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="sw-account">
+        <mxCell id="a5" value="Upload&#xa;Contract PDF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="sw-account" vertex="1">
           <mxGeometry x="700" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="a6" value="Submit&#xa;Contract Request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="sw-account">
+        <mxCell id="a6" value="Submit&#xa;Contract Request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="sw-account" vertex="1">
           <mxGeometry x="870" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="a7" value="Notification&#xa;(Approved / Rejected)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="sw-account">
-          <mxGeometry x="1040" y="80" width="130" height="60" as="geometry" />
+        <mxCell id="a7" value="Notification&#xa;(Approved / Rejected)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="sw-account" vertex="1">
+          <mxGeometry x="1076" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="a8" value="Use Project&#xa;Chat / Timeline&#xa;Email Organiser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="sw-account">
-          <mxGeometry x="1210" y="80" width="130" height="60" as="geometry" />
+        <mxCell id="a8" value="Use Project&#xa;Chat / Timeline&#xa;Email Organiser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="sw-account" vertex="1">
+          <mxGeometry x="1246" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-
-        <!-- Account auto-provision note -->
-        <mxCell id="a4n" value="Auto-creates: Contract (draft),&#xa;Chat, Timeline, Email Organiser" style="text;html=1;strokeColor=none;fillColor=#fffde7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=2;" vertex="1" parent="sw-account">
+        <mxCell id="a4n" value="Auto-creates: Contract (draft),&#xa;Chat, Timeline, Email Organiser" style="text;html=1;strokeColor=none;fillColor=#fffde7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=2;" parent="sw-account" vertex="1">
           <mxGeometry x="530" y="150" width="200" height="40" as="geometry" />
         </mxCell>
-
-        <!-- Account arrows -->
-        <mxCell id="ae1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="a1" target="a2" parent="sw-account"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="a2" target="a3" parent="sw-account"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="a3" target="a4" parent="sw-account"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="a4" target="a5" parent="sw-account"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="a5" target="a6" parent="sw-account"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="a6" target="a7" parent="sw-account"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ae7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="a7" target="a8" parent="sw-account"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- ══ SWIMLANE: MANAGER ══════════════════════════════════════════ -->
-        <mxCell id="sw-manager" value="Manager" style="swimlane;startSize=40;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+        <mxCell id="ae1" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-account" source="a1" target="a2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ae2" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-account" source="a2" target="a3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ae3" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-account" source="a3" target="a4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ae4" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-account" source="a4" target="a5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ae5" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-account" source="a5" target="a6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ae7" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-account" source="a7" target="a8" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HHbYHCBGhdTbn4UdptDz-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="sw-account" source="cross2" target="a7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cross2" value="Approval triggers:&#xa;Contract → Active&#xa;+ Notification + Email" style="text;html=1;strokeColor=#82b366;fillColor=#d5e8d4;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;" parent="sw-account" vertex="1">
+          <mxGeometry x="1056" y="175" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="HHbYHCBGhdTbn4UdptDz-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="sw-account" source="cross1" target="cross2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cross1" value="ContractRequest created&#xa;→ Manager notified" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;" parent="sw-account" vertex="1">
+          <mxGeometry x="850" y="175" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="HHbYHCBGhdTbn4UdptDz-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="sw-account" source="a6" target="cross1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sw-manager" value="Manager" style="swimlane;startSize=40;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;" parent="1" vertex="1">
           <mxGeometry x="20" y="320" width="1600" height="240" as="geometry" />
         </mxCell>
-
-        <!-- Manager steps -->
-        <mxCell id="m1" value="Sign Up&#xa;(role: Manager)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="sw-manager">
+        <mxCell id="m1" value="Sign Up&#xa;(role: Manager)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="sw-manager" vertex="1">
           <mxGeometry x="20" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="m1b" value="Admin Approves&#xa;(Django admin)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;" vertex="1" parent="sw-manager">
+        <mxCell id="m1b" value="Admin Approves&#xa;(Django admin)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;" parent="sw-manager" vertex="1">
           <mxGeometry x="175" y="65" width="140" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="m2" value="Log In" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="sw-manager">
+        <mxCell id="m2" value="Log In" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="sw-manager" vertex="1">
           <mxGeometry x="350" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="m3" value="Dashboard&#xa;(all projects +&#xa;pending requests)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="sw-manager">
+        <mxCell id="m3" value="Dashboard&#xa;(all projects +&#xa;pending requests)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="sw-manager" vertex="1">
           <mxGeometry x="520" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="m4" value="Review&#xa;Contract Request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="sw-manager">
+        <mxCell id="m4" value="Review&#xa;Contract Request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="sw-manager" vertex="1">
           <mxGeometry x="690" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="m4d" value="Approve /&#xa;Reject" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;" vertex="1" parent="sw-manager">
+        <mxCell id="m4d" value="Approve /&#xa;Reject" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;" parent="sw-manager" vertex="1">
           <mxGeometry x="845" y="65" width="120" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="m5" value="Contract Activated&#xa;+ Notification sent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="sw-manager">
+        <mxCell id="m5" value="Contract Activated&#xa;+ Notification sent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="sw-manager" vertex="1">
           <mxGeometry x="1000" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="m6" value="Modify Contract&#xa;/ Manage Timeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="sw-manager">
+        <mxCell id="m6" value="Modify Contract&#xa;/ Manage Timeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="sw-manager" vertex="1">
           <mxGeometry x="1170" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="m7" value="Invite&#xa;Invited Accounts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="sw-manager">
+        <mxCell id="m7" value="Invite&#xa;Invited Accounts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="sw-manager" vertex="1">
           <mxGeometry x="1340" y="80" width="130" height="60" as="geometry" />
         </mxCell>
-
-        <!-- Manager arrows -->
-        <mxCell id="me1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="m1" target="m1b" parent="sw-manager"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="me2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="m1b" target="m2" parent="sw-manager"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="me3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="m2" target="m3" parent="sw-manager"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="me4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="m3" target="m4" parent="sw-manager"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="me5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="m4" target="m4d" parent="sw-manager"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="me6" value="Approve" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="m4d" target="m5" parent="sw-manager"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="me7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="m5" target="m6" parent="sw-manager"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="me8" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="m6" target="m7" parent="sw-manager"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- ══ SWIMLANE: INVITED ACCOUNT ═════════════════════════════════ -->
-        <mxCell id="sw-invited" value="Invited Account" style="swimlane;startSize=40;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+        <mxCell id="me1" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-manager" source="m1" target="m1b" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me2" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-manager" source="m1b" target="m2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me3" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-manager" source="m2" target="m3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me4" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-manager" source="m3" target="m4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me5" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-manager" source="m4" target="m4d" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me6" value="Approve" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-manager" source="m4d" target="m5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me7" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-manager" source="m5" target="m6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me8" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-manager" source="m6" target="m7" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sw-invited" value="Invited Account" style="swimlane;startSize=40;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=13;" parent="1" vertex="1">
           <mxGeometry x="20" y="580" width="1600" height="200" as="geometry" />
         </mxCell>
-
-        <!-- Invited Account steps -->
-        <mxCell id="i1" value="Sign Up&#xa;(role: Invited Account)&#xa;via Manager invite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="sw-invited">
+        <mxCell id="i1" value="Sign Up&#xa;(role: Invited Account)&#xa;via Manager invite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="sw-invited" vertex="1">
           <mxGeometry x="20" y="70" width="150" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="i2" value="Log In" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="sw-invited">
+        <mxCell id="i2" value="Log In" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="sw-invited" vertex="1">
           <mxGeometry x="210" y="70" width="130" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="i3" value="Dashboard&#xa;(invited projects)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="sw-invited">
+        <mxCell id="i3" value="Dashboard&#xa;(invited projects)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="sw-invited" vertex="1">
           <mxGeometry x="380" y="70" width="130" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="i4" value="Project&#xa;Email Organiser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="sw-invited">
+        <mxCell id="i4" value="Project&#xa;Email Organiser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="sw-invited" vertex="1">
           <mxGeometry x="550" y="70" width="130" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="i5" value="Edit&#xa;Final Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="sw-invited">
+        <mxCell id="i5" value="Edit&#xa;Final Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="sw-invited" vertex="1">
           <mxGeometry x="720" y="70" width="130" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="i6" value="Send to&#xa;Recipients" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="sw-invited">
+        <mxCell id="i6" value="Send to&#xa;Recipients" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="sw-invited" vertex="1">
           <mxGeometry x="890" y="70" width="130" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="i7" value="View Chat /&#xa;Timeline /&#xa;Contract (read-only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="sw-invited">
+        <mxCell id="i7" value="View Chat /&#xa;Timeline /&#xa;Contract (read-only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="sw-invited" vertex="1">
           <mxGeometry x="1060" y="70" width="150" height="70" as="geometry" />
         </mxCell>
-
-        <!-- Invited Account arrows -->
-        <mxCell id="ie1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="i1" target="i2" parent="sw-invited"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ie2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="i2" target="i3" parent="sw-invited"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ie3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="i3" target="i4" parent="sw-invited"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ie4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="i4" target="i5" parent="sw-invited"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ie5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="i5" target="i6" parent="sw-invited"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ie6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="i3" target="i7" parent="sw-invited"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-        <!-- ══ CROSS-LANE ANNOTATIONS ════════════════════════════════════ -->
-        <mxCell id="cross1" value="ContractRequest created&#xa;→ Manager notified" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="890" y="260" width="170" height="50" as="geometry" />
+        <mxCell id="ie1" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-invited" source="i1" target="i2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cross2" value="Approval triggers:&#xa;Contract → Active&#xa;+ Notification + Email" style="text;html=1;strokeColor=#82b366;fillColor=#d5e8d4;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="1010" y="260" width="170" height="50" as="geometry" />
+        <mxCell id="ie2" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-invited" source="i2" target="i3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cross3" value="Manager invites&#xa;Invited Accounts to&#xa;Email Organiser" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="ie3" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-invited" source="i3" target="i4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie4" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-invited" source="i4" target="i5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie5" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-invited" source="i5" target="i6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie6" style="edgeStyle=orthogonalEdgeStyle;" parent="sw-invited" source="i3" target="i7" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="445" y="163" />
+              <mxPoint x="1135" y="163" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cross3" value="Manager invites&#xa;Invited Accounts to&#xa;Email Organiser" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;" parent="1" vertex="1">
           <mxGeometry x="1350" y="510" width="160" height="60" as="geometry" />
         </mxCell>
-
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Phase 3 — AI Reply Pipeline" id="phase3-ai-reply-pipeline">
+    <mxGraphModel dx="1536" dy="1526" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- Title -->
+        <mxCell id="p3-title" value="&lt;b&gt;Phase 3 — AI-Suggested Reply Pipeline&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#666&quot;&gt;Inbound email + PDF text extraction + Claude (narrowed-knowledge RAG)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="700" height="50" as="geometry" />
+        </mxCell>
+        <!-- ─── Lane labels ─── -->
+        <mxCell id="p3-lane-a" value="A. Contract Prep (PDF text extraction — item 9)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="380" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-lane-b" value="B. Inbound Webhook (item 8)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="500" y="90" width="380" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-lane-c" value="C. Async Claude Task (item 10)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="960" y="90" width="380" height="24" as="geometry" />
+        </mxCell>
+        <!-- ─── Lane A: Contract Prep ─── -->
+        <mxCell id="p3-a-1" value="Account uploads contract PDF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-2" value="POST /api/contracts/&#xa;ContractListCreateView.perform_create" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-3" value="Enqueue Celery task:&#xa;extract_contract_text.delay()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-4" value="pypdf reads PDF pages → joins text" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="370" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-decision" value="Empty text?&#xa;(scanned PDF)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="80" y="450" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-warn" value="Log warning, exit&#xa;(user can paste text manually)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="560" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-5" value="Save to Contract.content&#xa;(ready for Claude RAG)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="640" width="240" height="60" as="geometry" />
+        </mxCell>
+        <!-- Edges A -->
+        <mxCell id="p3-a-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-1" target="p3-a-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-2" target="p3-a-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-3" target="p3-a-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-4" target="p3-a-decision">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-e5" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p3-a-decision" target="p3-a-warn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-a-e6" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-a-decision" target="p3-a-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- ─── Lane B: Inbound Webhook ─── -->
+        <mxCell id="p3-b-1" value="External: client emails&#xa;proj-XXXXXXXX@inbound.contractmgr.app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="520" y="130" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-2" value="SES Inbound / SendGrid / Postmark&#xa;(provider receives + parses)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="200" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-3" value="POST /api/webhooks/inbound-email/&#xa;InboundEmailWebhookView" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="270" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-d1" value="X-Webhook-Secret&#xa;valid?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="560" y="340" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-401" value="401&#xa;Unauthorized" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="820" y="355" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-d2" value="Project exists for&#xa;`to` address?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="560" y="440" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-404" value="404&#xa;Not Found" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="820" y="455" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-d3" value="Duplicate&#xa;message_id?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="560" y="540" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-200" value="200 OK&#xa;(dedup)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="820" y="555" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-4" value="Create IncomingEmail row&#xa;(project FK, sender, subject, body, raw_payload)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="520" y="640" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-5" value="Enqueue generate_suggested_reply.delay()&#xa;Return 201" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="520" y="720" width="280" height="50" as="geometry" />
+        </mxCell>
+        <!-- Edges B -->
+        <mxCell id="p3-b-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-1" target="p3-b-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-2" target="p3-b-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-3" target="p3-b-d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e4" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p3-b-d1" target="p3-b-401">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e5" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-d1" target="p3-b-d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e6" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p3-b-d2" target="p3-b-404">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e7" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-d2" target="p3-b-d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e8" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p3-b-d3" target="p3-b-200">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e9" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-d3" target="p3-b-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-b-e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-b-4" target="p3-b-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- ─── Lane C: Async Claude Task ─── -->
+        <mxCell id="p3-c-1" value="Celery worker picks up&#xa;generate_suggested_reply" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="980" y="130" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-2" value="Load IncomingEmail + project.contract.content&#xa;(narrowed knowledge — only this project&#39;s contract)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="210" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-d" value="ANTHROPIC_API_KEY set&#xa;AND anthropic SDK installed?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="300" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-3a" value="Call Claude API&#xa;system = contract text (≤50k chars)&#xa;user = incoming email body" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="980" y="410" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-3b" value="Build placeholder draft&#xa;(graceful degradation)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="495" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-4" value="Create FinalResponse&#xa;status=&#39;suggested&#39;, is_ai_generated=True&#xa;source_incoming_email=&lt;id&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="980" y="570" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-5" value="Mark IncomingEmail.is_processed = True" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="660" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-6" value="User reviews / edits in Email Organiser panel,&#xa;then sends via existing FinalResponseSendView" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="980" y="720" width="280" height="50" as="geometry" />
+        </mxCell>
+        <!-- Edges C -->
+        <mxCell id="p3-c-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-1" target="p3-c-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-2" target="p3-c-d">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-e3" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-d" target="p3-c-3a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-e4" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-c-d" target="p3-c-3b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-3a" target="p3-c-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-c-3b" target="p3-c-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-4" target="p3-c-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-c-e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="p3-c-5" target="p3-c-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Cross-lane dependency arrows -->
+        <mxCell id="p3-cross-1" value="enqueues" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4d4d4d;dashed=1;" edge="1" parent="1" source="p3-b-5" target="p3-c-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-cross-2" value="provides contract context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4d4d4d;dashed=1;" edge="1" parent="1" source="p3-a-5" target="p3-c-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Legend -->
+        <mxCell id="p3-legend-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="730" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-legend-1" value="External actor / user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="755" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-legend-2" value="Decision" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="230" y="755" width="100" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-legend-3" value="DB write" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="795" width="160" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-legend-4" value="Claude API call" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="230" y="795" width="160" height="32" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Phase 2 — Manager Approval" id="phase2-manager-approval">
+    <mxGraphModel dx="1536" dy="1526" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- Title -->
+        <mxCell id="ma-title" value="&lt;b&gt;Phase 2 — Manager-approves-Manager Workflow&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#666&quot;&gt;Replaces the previous admin-only approval gate&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="700" height="50" as="geometry" />
+        </mxCell>
+        <!-- ─── Lane labels ─── -->
+        <mxCell id="ma-lane-a" value="A. New manager signs up" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="450" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-lane-b" value="B. Active manager reviews and decides" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="560" y="90" width="500" height="24" as="geometry" />
+        </mxCell>
+        <!-- ─── Lane A ─── -->
+        <mxCell id="ma-a-1" value="Visitor submits signup form&#xa;with role = &#39;manager&#39;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-2" value="POST /api/auth/signup/&#xa;UserRegistrationSerializer.create" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="220" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-3" value="User row created with is_active = False" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-4" value="Frontend (signup page) shows&#xa;&#39;Pending approval&#39; screen — login is blocked&#xa;until an existing manager approves" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-5" value="(blocks here until lane B resolves)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="480" width="380" height="40" as="geometry" />
+        </mxCell>
+        <!-- Edges A -->
+        <mxCell id="ma-a-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-a-1" target="ma-a-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-a-2" target="ma-a-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-a-3" target="ma-a-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-a-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-a-4" target="ma-a-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- ─── Lane B ─── -->
+        <mxCell id="ma-b-1" value="Existing active manager opens dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="600" y="140" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-2" value="PendingManagersPanel polls&#xa;GET /api/auth/pending-managers/&#xa;(60 s interval)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="220" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-3" value="Yellow card renders with the pending list&#xa;(name, email, requested-at, Approve / Reject buttons)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="310" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-d" value="Approve or Reject?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="660" y="400" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-approve" value="POST /api/auth/pending-managers/&#xa;&lt;uuid:pk&gt;/approve/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="510" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-reject" value="POST /api/auth/pending-managers/&#xa;&lt;uuid:pk&gt;/reject/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="800" y="510" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-approve-result" value="User.is_active = True&#xa;Pending manager can now log in" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="590" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-reject-result" value="User row deleted&#xa;Account permanently removed" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="800" y="590" width="220" height="60" as="geometry" />
+        </mxCell>
+        <!-- Edges B -->
+        <mxCell id="ma-b-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-1" target="ma-b-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-2" target="ma-b-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-3" target="ma-b-d">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-e4" value="approve" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="ma-b-d" target="ma-b-approve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-e5" value="reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="ma-b-d" target="ma-b-reject">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-approve" target="ma-b-approve-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-b-e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ma-b-reject" target="ma-b-reject-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Cross-lane unblock arrow -->
+        <mxCell id="ma-cross-1" value="unblocks login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="ma-b-approve-result" target="ma-a-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ma-cross-2" value="permanently removes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="ma-b-reject-result" target="ma-a-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

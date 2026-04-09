@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Send, Wifi, WifiOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,62 +8,91 @@ import { MessageBubble } from './message-bubble'
 import { useChat } from '@/hooks/use-chat'
 import { useAuth } from '@/hooks/use-auth'
 import { api } from '@/lib/api'
-import type { Message, PaginatedResponse, Chat } from '@/types'
+import type { Message, PaginatedResponse, User } from '@/types'
 
 interface ChatWindowProps {
   projectId: string
 }
 
+// REST returns `author` as a nested User object; the WS broadcast event uses
+// `author_id` / `author_email` instead. Normalise to "is this my message?".
+function isOwnMessage(msg: Message, currentUserId?: string): boolean {
+  if (!currentUserId) return false
+  const a = msg.author as unknown
+  if (typeof a === 'string') return a === currentUserId
+  if (a && typeof a === 'object' && 'id' in a) {
+    return (a as { id: string }).id === currentUserId
+  }
+  const wsAuthorId = (msg as { author_id?: string }).author_id
+  return wsAuthorId === currentUserId
+}
+
 export function ChatWindow({ projectId }: ChatWindowProps) {
   const { user } = useAuth()
-  const [chatId, setChatId] = useState<string>('')
   const [historicalMessages, setHistoricalMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
+  const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Fetch the chat object for this project
-  useEffect(() => {
-    api
-      .get<PaginatedResponse<Chat>>(`/api/chats/?project=${projectId}`)
-      .then((res) => {
-        if (res.results.length > 0) {
-          setChatId(res.results[0].id)
-        }
-      })
-      .catch(() => {})
+  const fetchHistory = useCallback(async () => {
+    if (!projectId) return
+    try {
+      const res = await api.get<PaginatedResponse<Message> | Message[]>(
+        `/api/chats/${projectId}/messages/`
+      )
+      const list = Array.isArray(res) ? res : res.results
+      setHistoricalMessages(list ?? [])
+    } catch {
+      // ignore — chat keeps showing whatever we already have
+    }
   }, [projectId])
 
-  // Fetch historical messages
+  // Fetch on mount and poll periodically as a WS-independent fallback so the
+  // group chat keeps working when the WebSocket layer is unavailable.
   useEffect(() => {
-    if (!chatId) return
-    api
-      .get<PaginatedResponse<Message>>(`/api/messages/?chat=${chatId}`)
-      .then((res) => setHistoricalMessages(res.results))
-      .catch(() => {})
-  }, [chatId])
+    fetchHistory()
+    const t = setInterval(fetchHistory, 5_000)
+    return () => clearInterval(t)
+  }, [fetchHistory])
 
   const { messages: wsMessages, sendMessage, status } = useChat({
     projectId,
-    chatId,
+    chatId: projectId,
   })
 
   const allMessages = [...historicalMessages, ...wsMessages]
-
-  // Remove duplicates (historical messages might overlap with ws messages)
   const uniqueMessages = allMessages.filter(
     (msg, idx, arr) => arr.findIndex((m) => m.id === msg.id) === idx
   )
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [uniqueMessages.length])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const content = inputValue.trim()
     if (!content) return
-    sendMessage(content)
     setInputValue('')
+
+    // Prefer the live WebSocket when it's connected — feels instant. Otherwise
+    // fall back to a plain HTTP POST so the chat is never blocked.
+    if (status === 'connected') {
+      sendMessage(content)
+      return
+    }
+
+    setSending(true)
+    try {
+      const created = await api.post<Message>(
+        `/api/chats/${projectId}/messages/`,
+        { content }
+      )
+      setHistoricalMessages((prev) => [...prev, created])
+    } catch {
+      setInputValue(content) // restore so user can retry
+    } finally {
+      setSending(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -73,28 +102,37 @@ export function ChatWindow({ projectId }: ChatWindowProps) {
     }
   }
 
+  const liveLabel =
+    status === 'connected'
+      ? { icon: Wifi, klass: 'text-green-500', textKlass: 'text-green-600', label: 'Live' }
+      : status === 'connecting'
+        ? null
+        : {
+            icon: WifiOff,
+            klass: 'text-muted-foreground',
+            textKlass: 'text-muted-foreground',
+            label: 'Polling',
+          }
+
   return (
     <div className="flex flex-col h-full min-h-[500px] border rounded-lg overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
         <h3 className="font-semibold text-sm">Project Chat</h3>
         <div className="flex items-center gap-1.5 text-xs">
-          {status === 'connected' ? (
-            <>
-              <Wifi className="h-3.5 w-3.5 text-green-500" />
-              <span className="text-green-600">Connected</span>
-            </>
-          ) : status === 'connecting' ? (
+          {status === 'connecting' ? (
             <>
               <div className="h-3.5 w-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
               <span className="text-muted-foreground">Connecting...</span>
             </>
-          ) : (
+          ) : liveLabel ? (
             <>
-              <WifiOff className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-destructive">Disconnected</span>
+              {React.createElement(liveLabel.icon, {
+                className: `h-3.5 w-3.5 ${liveLabel.klass}`,
+              })}
+              <span className={liveLabel.textKlass}>{liveLabel.label}</span>
             </>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -107,13 +145,20 @@ export function ChatWindow({ projectId }: ChatWindowProps) {
             </p>
           </div>
         )}
-        {uniqueMessages.map((message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            isOwn={message.author === user?.id}
-          />
-        ))}
+        {uniqueMessages.map((message) => {
+          const author =
+            message.author && typeof message.author === 'object'
+              ? (message.author as User)
+              : undefined
+          return (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              author={author}
+              isOwn={isOwnMessage(message, user?.id)}
+            />
+          )
+        })}
         <div ref={bottomRef} />
       </div>
 
@@ -126,11 +171,11 @@ export function ChatWindow({ projectId }: ChatWindowProps) {
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             className="flex-1"
-            disabled={status !== 'connected'}
+            disabled={sending}
           />
           <Button
             onClick={handleSend}
-            disabled={!inputValue.trim() || status !== 'connected'}
+            disabled={!inputValue.trim() || sending}
             size="icon"
             aria-label="Send message"
           >

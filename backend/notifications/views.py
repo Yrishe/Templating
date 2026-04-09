@@ -18,9 +18,15 @@ class NotificationListView(generics.ListAPIView):
         user = self.request.user
         from projects.models import ProjectMembership
         member_project_ids = ProjectMembership.objects.filter(user=user).values_list("project_id", flat=True)
-        return Notification.objects.filter(project__in=member_project_ids).select_related(
+        qs = Notification.objects.filter(project__in=member_project_ids).select_related(
             "project", "triggered_by_contract_request", "triggered_by_manager"
         )
+        # Allow per-project filtering so the project overview's notification
+        # feed only shows notifications for that project.
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        return qs
 
 
 class NotificationMarkReadView(APIView):

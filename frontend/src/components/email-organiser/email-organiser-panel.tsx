@@ -12,16 +12,33 @@ import type { IncomingEmail, PaginatedResponse } from '@/types'
 
 interface EmailOrganiserPanelProps {
   projectId: string
+  selectedEmailId?: string | null
+  onSelectEmail?: (email: IncomingEmail) => void
 }
 
-function EmailItemRow({ email }: { email: IncomingEmail }) {
+function EmailItemRow({
+  email,
+  isSelected,
+  onSelect,
+}: {
+  email: IncomingEmail
+  isSelected: boolean
+  onSelect: () => void
+}) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="border rounded-md overflow-hidden">
+    <div
+      className={`border rounded-md overflow-hidden ${
+        isSelected ? 'border-primary ring-1 ring-primary/30' : ''
+      }`}
+    >
       <button
         className="w-full flex items-start gap-3 p-3 text-left hover:bg-muted/50 transition-colors"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => {
+          onSelect()
+          setExpanded(!expanded)
+        }}
       >
         <div className="mt-0.5 shrink-0 rounded-full bg-blue-100 p-1">
           <Mail className="h-3.5 w-3.5 text-blue-600" />
@@ -59,7 +76,11 @@ function EmailItemRow({ email }: { email: IncomingEmail }) {
   )
 }
 
-export function EmailOrganiserPanel({ projectId }: EmailOrganiserPanelProps) {
+export function EmailOrganiserPanel({
+  projectId,
+  selectedEmailId,
+  onSelectEmail,
+}: EmailOrganiserPanelProps) {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['incoming-emails', projectId],
     queryFn: () =>
@@ -118,7 +139,12 @@ export function EmailOrganiserPanel({ projectId }: EmailOrganiserPanelProps) {
         {!isLoading && !isError && emails.length > 0 && (
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
             {emails.map((email) => (
-              <EmailItemRow key={email.id} email={email} />
+              <EmailItemRow
+                key={email.id}
+                email={email}
+                isSelected={selectedEmailId === email.id}
+                onSelect={() => onSelectEmail?.(email)}
+              />
             ))}
           </div>
         )}

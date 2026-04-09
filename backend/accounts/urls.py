@@ -13,6 +13,7 @@ from .views import (
     PendingManagerRejectView,
     SignupView,
     TokenRefreshCookieView,
+    UserSearchView,
 )
 
 urlpatterns = [
@@ -21,6 +22,7 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="auth-logout"),
     path("token/refresh/", TokenRefreshCookieView.as_view(), name="auth-token-refresh"),
     path("me/", MeView.as_view(), name="auth-me"),
+    path("users/search/", UserSearchView.as_view(), name="user-search"),
     path("accounts/", AccountListCreateView.as_view(), name="account-list-create"),
     path("accounts/<uuid:pk>/", AccountDetailView.as_view(), name="account-detail"),
     path("pending-managers/", PendingManagerListView.as_view(), name="pending-manager-list"),

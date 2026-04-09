@@ -1,5 +1,60 @@
 # Changelog
 
+## [Unreleased] — 2026-04-09
+
+### Added — Project collaboration, Email Organiser dynamic reply, chat HTTP fallback
+
+#### Invite existing accounts on project creation
+- `backend/accounts/views.py`: new `UserSearchView` (`GET /api/auth/users/search/?q=&role=`) — authenticated user search by name/email; excludes the requester; optional `role` filter (used by the manager owner picker to scope results to Account users).
+- `backend/accounts/urls.py`: registered `users/search/`.
+- `frontend/src/components/projects/create-project-form.tsx`: new "Invite team members" section with debounced search, multi-select chips, and a per-row toggle. After project creation, invited users are added via `POST /api/projects/<id>/members/` (best-effort, non-blocking).
+
+#### Notifications moved into the project overview
+- `frontend/src/app/(app)/dashboard/dashboard-content.tsx`: removed `NotificationFeed` from the dashboard layout.
+- `frontend/src/app/(app)/projects/[id]/page.tsx`: `NotificationFeed` rendered on the project overview page.
+- `backend/notifications/views.py`: `NotificationListView` now honours `?project=<id>` so the per-project feed only shows that project's notifications.
+- `frontend/src/hooks/use-notifications.ts`: `useNotifications(projectId?)` passes the filter through and uses a project-scoped query key.
+- `frontend/src/components/dashboard/notification-feed.tsx`: accepts an optional `projectId` prop.
+- `frontend/src/hooks/use-projects.ts`: `useCreateProject` now invalidates `notifications` and `dashboard` query caches on success so a freshly-created project doesn't show stale entries from sibling projects.
+
+#### Group chat — HTTP fallback so the chat is never blocked
+- `backend/chat/views.py`: `MessageListView` is now `ListCreateAPIView` — `POST /api/chats/<project_id>/messages/` creates a message (defaulting `chat=`/`author=`), enqueues `create_chat_message_notification`, and best-effort broadcasts on the channel layer when one is configured. WebSocket remains the primary transport when daphne/Channels is available.
+- `frontend/src/components/chat/chat-window.tsx`: rewritten to:
+  - Poll `/api/chats/<id>/messages/` every 5 s as a WS-independent fallback.
+  - Send via WebSocket when connected; otherwise POST over HTTP and append the result locally.
+  - Stop disabling the input/send button on WS state — only while a send is in flight.
+  - Replace the alarming "Disconnected" header with "Live" / "Connecting…" / "Polling".
+  - Normalise the `author` field across REST (nested object) and WS (`author_id`/`author_email`) so message ownership and avatars work for both transports.
+- `frontend/src/components/chat/message-bubble.tsx`: hardened initials/display name lookup so non-string `author` payloads no longer crash (`message.author.slice is not a function`).
+
+#### Removed Project Email card
+- `frontend/src/app/(app)/projects/[id]/page.tsx`: deleted the `Project Email` stat tile and the `Generic email` row from the Project Details card; stats grid trimmed from 4 to 3 columns.
+
+#### Email Organiser — dynamic reply generation
+- `backend/email_organiser/views.py`: new `GenerateReplyView` (`POST /api/projects/<project_id>/incoming-emails/<pk>/generate-reply/`) that runs `generate_suggested_reply` synchronously and returns the most recent `FinalResponse` for the incoming email so the UI can render it immediately.
+- `backend/email_organiser/urls.py`: registered the generate-reply route.
+- `frontend/src/components/email-organiser/email-organiser-panel.tsx`: emails are now selectable; supports `selectedEmailId` and `onSelectEmail` props with a highlighted row state.
+- `frontend/src/components/email-organiser/reply-panel.tsx`: NEW FILE — auto-generates a Claude-drafted reply when an inbound email is selected, with Regenerate / Save Draft / Send actions backed by the existing final-response endpoints.
+- `frontend/src/app/(app)/email-organiser/[projectId]/email-organiser-content.tsx`: replaced the static `FinalResponseEditor` with the new master/detail flow (`EmailOrganiserPanel` ↔ `ReplyPanel`).
+
+### Changed — Managers can create projects, tag deletion, contract page UX
+
+#### Managers can create (and assign) projects
+- `backend/projects/views.py`: `ProjectListCreateView.perform_create` now allows both `account` and `manager` roles. Managers may pass `owner_user_id` to assign the project to another active user; without it the project is owned by the creator. The Account row for the chosen owner is `get_or_create`'d, and both creator and (if different) owner are added as `ProjectMembership` rows so the chat group includes everyone.
+- `frontend/src/hooks/use-projects.ts`: `CreateProjectPayload` widened to accept `owner_user_id`.
+- `frontend/src/components/projects/create-project-form.tsx`: when the current user is a manager, a new "Project Owner" section appears with *Assign to me* / *Assign to an Account* buttons and a search picker (filtered to Account-role users) for the latter case.
+
+#### Tags / priority labels can be deleted
+- `backend/projects/views.py`: `TagDetailView` no longer restricts `DELETE` to managers — any authenticated user may delete a tag.
+- `frontend/src/hooks/use-projects.ts`: new `useDeleteTag()` hook (`DELETE /api/tags/<id>/`).
+- `frontend/src/components/projects/create-project-form.tsx`: each tag chip now has a small ✕ button (separate from the toggle) that confirms and deletes the tag, also clearing it from `selectedTagIds`.
+
+#### Contract page on a freshly created project
+- `backend/contracts/views.py`: `ContractListCreateView.get_queryset` now honours `?project=<id>` so the per-project Contract page no longer surfaces another project's contract on a brand-new project.
+- `frontend/src/components/contracts/contract-view.tsx`: managers (not just accounts) can see and use the upload form, since managers can now create projects and need to upload the initial contract themselves.
+
+---
+
 ## [Unreleased] — 2026-04-07
 
 ### Added

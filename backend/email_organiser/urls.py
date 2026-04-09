@@ -7,6 +7,7 @@ from .views import (
     FinalResponseDetailView,
     FinalResponseListCreateView,
     FinalResponseSendView,
+    GenerateReplyView,
     InboundEmailWebhookView,
     IncomingEmailListView,
     InvitedAccountListView,
@@ -18,6 +19,11 @@ urlpatterns = [
         "projects/<uuid:project_id>/incoming-emails/",
         IncomingEmailListView.as_view(),
         name="incoming-email-list",
+    ),
+    path(
+        "projects/<uuid:project_id>/incoming-emails/<uuid:pk>/generate-reply/",
+        GenerateReplyView.as_view(),
+        name="incoming-email-generate-reply",
     ),
     path(
         "webhooks/inbound-email/",

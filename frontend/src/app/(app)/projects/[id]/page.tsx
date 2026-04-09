@@ -7,6 +7,7 @@ import { MessageSquare, FileText, Calendar, Mail, Users, Clock } from 'lucide-re
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { NotificationFeed } from '@/components/dashboard/notification-feed'
 import { useProject, useProjectContract, useProjectMembers, useContractRequests } from '@/hooks/use-projects'
 import { useAuth } from '@/hooks/use-auth'
 import { ROUTES } from '@/lib/constants'
@@ -58,7 +59,7 @@ export default function ProjectOverviewPage() {
   return (
     <div className="space-y-6">
       {/* Quick stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
@@ -94,20 +95,10 @@ export default function ProjectOverviewPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium truncate max-w-[100px]">
-                  {project?.generic_email ?? '—'}
-                </p>
-                <p className="text-xs text-muted-foreground">Project Email</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Project notifications feed */}
+      <NotificationFeed projectId={id} />
 
       {/* Quick links */}
       <div>
@@ -180,8 +171,6 @@ export default function ProjectOverviewPage() {
               <dd>{formatDate(project.created_at)}</dd>
               <dt className="text-muted-foreground">Last updated</dt>
               <dd>{formatDate(project.updated_at)}</dd>
-              <dt className="text-muted-foreground">Generic email</dt>
-              <dd className="truncate">{project.generic_email}</dd>
             </dl>
           </CardContent>
         </Card>

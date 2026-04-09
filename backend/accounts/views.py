@@ -118,6 +118,34 @@ class MeView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
+class UserSearchView(generics.ListAPIView):
+    """Search for registered users by name or email.
+
+    Used by the project-creation flow to invite existing accounts. Returns
+    only active users; excludes the requesting user. Pass ?q=... to filter.
+    """
+
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        from django.db.models import Q
+
+        q = (self.request.query_params.get("q") or "").strip()
+        role = (self.request.query_params.get("role") or "").strip()
+        qs = User.objects.filter(is_active=True).exclude(pk=self.request.user.pk)
+        if role:
+            qs = qs.filter(role=role)
+        if q:
+            qs = qs.filter(
+                Q(email__icontains=q)
+                | Q(first_name__icontains=q)
+                | Q(last_name__icontains=q)
+            )
+        return qs.order_by("email")[:20]
+
+
 class AccountListCreateView(generics.ListCreateAPIView):
     serializer_class = AccountSerializer
     permission_classes = [permissions.IsAuthenticated, IsSubscriber]

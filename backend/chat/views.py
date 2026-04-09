@@ -30,14 +30,51 @@ class ChatDetailView(RetrieveAPIView):
         return chat
 
 
-class MessageListView(generics.ListAPIView):
+class MessageListView(generics.ListCreateAPIView):
+    """List or post chat messages over HTTP.
+
+    The WebSocket consumer is the primary delivery channel, but we also expose
+    a `POST` here so the chat keeps working when the WS connection is down
+    (e.g. when the dev server is running plain `runserver` without daphne).
+    """
+
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         project = _get_project_for_user(self.kwargs["project_id"], self.request.user)
+        chat, _ = Chat.objects.get_or_create(project=project)
+        return Message.objects.filter(chat=chat).select_related("author").order_by("created_at")
+
+    def perform_create(self, serializer):
+        project = _get_project_for_user(self.kwargs["project_id"], self.request.user)
+        chat, _ = Chat.objects.get_or_create(project=project)
+        message = serializer.save(chat=chat, author=self.request.user)
+        # Best-effort: notify other members and broadcast over the WS group if
+        # one is connected. Both are safe no-ops when the underlying services
+        # are unavailable.
         try:
-            chat = Chat.objects.get(project=project)
-        except Chat.DoesNotExist:
-            return Message.objects.none()
-        return Message.objects.filter(chat=chat).select_related("author")
+            from notifications.tasks import create_chat_message_notification
+            create_chat_message_notification.delay(str(message.id))
+        except Exception:
+            pass
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            layer = get_channel_layer()
+            if layer is not None:
+                async_to_sync(layer.group_send)(
+                    f"chat_{project.pk}",
+                    {
+                        "type": "chat_message",
+                        "message_id": str(message.id),
+                        "content": message.content,
+                        "author_id": str(self.request.user.id),
+                        "author_email": self.request.user.email,
+                        "created_at": message.created_at.isoformat(),
+                    },
+                )
+        except Exception:
+            pass

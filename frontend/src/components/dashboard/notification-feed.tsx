@@ -89,8 +89,12 @@ function NotificationItem({ notification }: { notification: Notification }) {
   )
 }
 
-export function NotificationFeed() {
-  const { data, isLoading, isError } = useNotifications()
+interface NotificationFeedProps {
+  projectId?: string
+}
+
+export function NotificationFeed({ projectId }: NotificationFeedProps = {}) {
+  const { data, isLoading, isError } = useNotifications(projectId)
   const markAllRead = useMarkAllNotificationsRead()
   const allNotifications = data?.results ?? []
   // Filter to project-focused types only — the dashboard intentionally hides

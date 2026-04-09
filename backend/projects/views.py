@@ -44,22 +44,42 @@ class ProjectListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         user = self.request.user
-        if user.role != user.ACCOUNT:
+        from accounts.models import Account, User as UserModel
+
+        if user.role not in (user.ACCOUNT, user.MANAGER):
             from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only account users can create projects.")
-        # Auto-assign (or create) the user's Account profile
-        from accounts.models import Account
+            raise PermissionDenied("Only account or manager users can create projects.")
+
+        # A manager may target a specific owner via `owner_user_id` (any active
+        # user). When omitted, the project is owned by the creator themselves.
+        owner_user = user
+        owner_user_id = self.request.data.get("owner_user_id")
+        if owner_user_id:
+            if user.role != user.MANAGER and str(owner_user_id) != str(user.pk):
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Only managers can assign projects to other users.")
+            try:
+                owner_user = UserModel.objects.get(pk=owner_user_id, is_active=True)
+            except UserModel.DoesNotExist:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({"owner_user_id": "No active user with this id."})
+
         account, _ = Account.objects.get_or_create(
-            subscriber=user,
-            defaults={"name": user.get_full_name() or user.email, "email": user.email},
+            subscriber=owner_user,
+            defaults={
+                "name": owner_user.get_full_name() or owner_user.email,
+                "email": owner_user.email,
+            },
         )
         project: Project = serializer.save(account=account)
         # Auto-generate the inbound mailbox address — replaces manual entry on
         # the create form. Uses the first 8 chars of the UUID for a short slug.
         project.generic_email = f"proj-{str(project.id)[:8]}@{PROJECT_INBOUND_DOMAIN}"
         project.save(update_fields=["generic_email"])
-        # Add creator as member and auto-provision linked resources
+        # Add creator and (if different) the owner as members.
         ProjectMembership.objects.get_or_create(project=project, user=user)
+        if owner_user.pk != user.pk:
+            ProjectMembership.objects.get_or_create(project=project, user=owner_user)
         Timeline.objects.get_or_create(project=project)
         from chat.models import Chat
         Chat.objects.get_or_create(project=project)
@@ -157,12 +177,8 @@ class TagListCreateView(generics.ListCreateAPIView):
 
 
 class TagDetailView(generics.RetrieveDestroyAPIView):
-    """Retrieve or delete a tag — delete is manager-only."""
+    """Retrieve or delete a tag — any authenticated user may delete."""
 
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
-
-    def get_permissions(self):
-        if self.request.method == "DELETE":
-            return [permissions.IsAuthenticated(), IsManager()]
-        return [permissions.IsAuthenticated()]
+    permission_classes = [permissions.IsAuthenticated]

@@ -9,10 +9,17 @@ export const notificationKeys = {
   dashboard: ['dashboard'] as const,
 }
 
-export function useNotifications() {
+export function useNotifications(projectId?: string) {
   return useQuery({
-    queryKey: notificationKeys.lists(),
-    queryFn: () => api.get<PaginatedResponse<Notification>>('/api/notifications/'),
+    queryKey: projectId
+      ? [...notificationKeys.lists(), { project: projectId }]
+      : notificationKeys.lists(),
+    queryFn: () =>
+      api.get<PaginatedResponse<Notification>>(
+        projectId
+          ? `/api/notifications/?project=${projectId}`
+          : '/api/notifications/'
+      ),
     refetchInterval: 30_000, // poll every 30s
   })
 }

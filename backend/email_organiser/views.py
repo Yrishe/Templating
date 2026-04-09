@@ -131,6 +131,49 @@ class IncomingEmailListView(generics.ListAPIView):
         return IncomingEmail.objects.filter(project=project)
 
 
+class GenerateReplyView(APIView):
+    """Generate (or regenerate) an AI-drafted reply for a specific inbound email.
+
+    Runs the existing `generate_suggested_reply` task synchronously and returns
+    the resulting `FinalResponse`. Also wired into the email organiser UI: the
+    user picks an inbound email and the reply is generated on demand.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request: Request, project_id, pk) -> Response:
+        _require_project_membership(project_id, request.user)
+        try:
+            incoming = IncomingEmail.objects.get(pk=pk, project_id=project_id)
+        except IncomingEmail.DoesNotExist:
+            return Response({"detail": "Inbound email not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Run the task in-process so we can return the result synchronously.
+        from email_organiser.tasks import generate_suggested_reply
+
+        try:
+            generate_suggested_reply.run(str(incoming.id))
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.exception("GenerateReplyView: failed for %s", incoming.id)
+            return Response(
+                {"detail": f"Failed to generate reply: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Return the most recent suggested FinalResponse for this inbound email.
+        fr = (
+            FinalResponse.objects.filter(source_incoming_email=incoming)
+            .order_by("-created_at")
+            .first()
+        )
+        if fr is None:
+            return Response(
+                {"detail": "Reply generation produced no draft."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        return Response(FinalResponseSerializer(fr).data, status=status.HTTP_200_OK)
+
+
 class InboundEmailWebhookView(APIView):
     """Webhook receiving parsed inbound emails from SES Inbound / SendGrid Inbound Parse / Postmark.
 

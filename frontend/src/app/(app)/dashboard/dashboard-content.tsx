@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { PlusCircle, FolderOpen, FileText, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { NotificationFeed } from '@/components/dashboard/notification-feed'
 import { ProjectSummaryCard } from '@/components/dashboard/project-summary-card'
 import { PendingManagersPanel } from '@/components/dashboard/pending-managers-panel'
 import { useDashboard } from '@/hooks/use-notifications'
@@ -91,9 +90,9 @@ export function DashboardContent() {
       </div>
 
       {/* Main content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-4">
         {/* Projects */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Recent Projects</h2>
             <Link href={ROUTES.PROJECTS} className="text-sm text-primary hover:underline">
@@ -131,11 +130,6 @@ export function DashboardContent() {
             </div>
           )}
 
-        </div>
-
-        {/* Notifications */}
-        <div>
-          <NotificationFeed />
         </div>
       </div>
     </div>
