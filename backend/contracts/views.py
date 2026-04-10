@@ -20,7 +20,7 @@ class ContractListCreateView(generics.ListCreateAPIView):
 
     def get_parsers(self):
         from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
-        if self.request.method in ("POST",):
+        if self.request is not None and self.request.method in ("POST",):
             return [MultiPartParser(), FormParser()]
         return [JSONParser()]
 
@@ -81,7 +81,7 @@ class ContractDetailView(generics.RetrieveUpdateAPIView):
     def get_parsers(self):
         # Support multipart for file uploads
         from rest_framework.parsers import FormParser, MultiPartParser
-        if self.request.method in ("PUT", "PATCH", "POST"):
+        if self.request is not None and self.request.method in ("PUT", "PATCH", "POST"):
             return [MultiPartParser(), FormParser()]
         return super().get_parsers()
 
