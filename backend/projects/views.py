@@ -137,6 +137,25 @@ class TimelineEventCreateView(generics.CreateAPIView):
         serializer.save(timeline=timeline)
 
 
+class ProjectMembershipListView(generics.ListAPIView):
+    """List memberships for a project, filtered by ?project= query param."""
+
+    serializer_class = ProjectMembershipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = ProjectMembership.objects.select_related("user")
+        # Non-managers can only see memberships for projects they belong to
+        if user.role != user.MANAGER:
+            my_projects = ProjectMembership.objects.filter(user=user).values_list("project_id", flat=True)
+            qs = qs.filter(project__in=my_projects)
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        return qs
+
+
 class ProjectMemberAddView(APIView):
     """Invite a user to a project — only registered users can be added.
 
