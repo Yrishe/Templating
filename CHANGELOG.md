@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] — 2026-04-10
+
+### Fixed — Schema, auth, contract request scoping, membership endpoint
+
+#### `/api/schema/` returns 500 — NoneType has no attribute 'method'
+- `backend/contracts/views.py`: `ContractListCreateView.get_parsers()` and `ContractDetailView.get_parsers()` crashed when `self.request` was `None` during DRF schema introspection. Added `self.request is not None` guard in both methods.
+
+#### Authenticated API requests return 401 Unauthorized
+- `backend/accounts/authentication.py`: `CookieJWTAuthentication.authenticate()` returned `None` on expired/invalid cookie tokens instead of raising `InvalidToken`. DRF treated this as "no authentication attempted", silently downgrading the request to anonymous. Now raises `InvalidToken` so the client gets a proper 401.
+- `frontend/src/lib/api.ts`: added automatic token refresh interceptor — on 401, calls `POST /api/auth/token/refresh/` and retries the original request once. Concurrent 401s share a single refresh call to avoid race conditions.
+
+#### New projects show pending contract requests from other projects
+- `backend/contracts/views.py`: `ContractRequestListCreateView.get_queryset()` ignored the `?project=` query param, returning all requests for the user regardless of project. Added project filtering when the param is present.
+- `frontend/src/hooks/use-projects.ts`: `useContractRequests` had no `enabled` guard — could fire without a `projectId` and fetch everything. Added `enabled: Boolean(projectId)`.
+
+#### `/api/project-memberships/` returns 404
+- `backend/projects/views.py`: added `ProjectMembershipListView` (ListAPIView) — lists memberships filtered by `?project=`, scoped so non-managers only see projects they belong to.
+- `backend/projects/urls.py`: registered `GET /api/project-memberships/`.
+
+---
+
 ## [Unreleased] — 2026-04-09
 
 ### Added — Project collaboration, Email Organiser dynamic reply, chat HTTP fallback
