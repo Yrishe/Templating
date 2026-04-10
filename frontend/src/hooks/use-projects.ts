@@ -174,6 +174,7 @@ export function useContractRequests(projectId?: string) {
         : '/api/contract-requests/'
       return api.get<PaginatedResponse<ContractRequest>>(url)
     },
+    enabled: Boolean(projectId),
   })
 }
 

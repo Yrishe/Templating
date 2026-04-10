@@ -115,9 +115,15 @@ class ContractRequestListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         qs = ContractRequest.objects.select_related("account", "project", "reviewed_by")
         if user.role == user.MANAGER:
-            return qs.all()
-        # Accounts see requests linked to their own account records
-        return qs.filter(account__subscriber=user)
+            qs = qs.all()
+        else:
+            # Accounts see requests linked to their own account records
+            qs = qs.filter(account__subscriber=user)
+        # Honour ?project= so per-project views only see their own requests
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        return qs
 
     def perform_create(self, serializer):
         cr = serializer.save()
