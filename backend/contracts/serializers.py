@@ -5,6 +5,50 @@ from rest_framework import serializers
 from .models import Contract, ContractRequest
 
 
+# ─── Upload constraints ────────────────────────────────────────────────────
+#
+# Both file fields on this app (Contract.file and ContractRequest.attachment)
+# accept only PDF. The 10 MB cap is a product decision — redlined contract
+# PDFs are rarely larger. The browser-side `accept=".pdf"` filter is a UX
+# hint; these validators are the real gate.
+
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+PDF_MAGIC = b"%PDF-"
+
+
+def _validate_pdf_upload(file_obj, field_label: str):
+    """Reject anything that isn't a PDF, or is too big.
+
+    We sniff the first few bytes of the stream rather than trusting
+    `content_type` (which is whatever the browser claims it is — trivially
+    spoofable). Django's `UploadedFile.read(n)` + `.seek(0)` is safe for
+    in-memory and temp-file uploads alike.
+    """
+    if file_obj is None:
+        return None
+    # Size first — cheap check, rejects oversized uploads before we touch
+    # the stream. Django's framework-level DATA_UPLOAD_MAX_MEMORY_SIZE is a
+    # second line of defense for ill-behaved clients.
+    size = getattr(file_obj, "size", None)
+    if size is not None and size > MAX_UPLOAD_BYTES:
+        raise serializers.ValidationError(
+            f"{field_label} is too large ({size} bytes). Maximum is {MAX_UPLOAD_BYTES} bytes (10 MB)."
+        )
+    # Magic-byte sniff.
+    head = file_obj.read(len(PDF_MAGIC))
+    try:
+        file_obj.seek(0)
+    except Exception:
+        # Some storage backends may not support seek — in that case we
+        # accept the read cost of one more pass. Nothing to do here.
+        pass
+    if not head.startswith(PDF_MAGIC):
+        raise serializers.ValidationError(
+            f"{field_label} must be a PDF document (magic bytes did not match)."
+        )
+    return file_obj
+
+
 class ContractSerializer(serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
 
@@ -23,6 +67,9 @@ class ContractSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(obj.file.url)
         return obj.file.url
+
+    def validate_file(self, value):
+        return _validate_pdf_upload(value, "Contract file")
 
     def create(self, validated_data):
         validated_data["created_by"] = self.context["request"].user
@@ -56,3 +103,6 @@ class ContractRequestSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(obj.attachment.url)
         return obj.attachment.url
+
+    def validate_attachment(self, value):
+        return _validate_pdf_upload(value, "Attachment")

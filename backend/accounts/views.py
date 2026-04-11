@@ -31,6 +31,9 @@ def _auth_payload(user: User, refresh: RefreshToken) -> dict:
 
 class SignupView(APIView):
     permission_classes = [permissions.AllowAny]
+    # Brute-force protection: at most 10 signup attempts per minute from
+    # the same client. Rate defined in settings DEFAULT_THROTTLE_RATES['auth'].
+    throttle_scope = "auth"
 
     def post(self, request: Request) -> Response:
         serializer = UserRegistrationSerializer(data=request.data)
@@ -42,6 +45,8 @@ class SignupView(APIView):
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    # Password-guessing protection — same 10/minute throttle as signup.
+    throttle_scope = "auth"
 
     def post(self, request: Request) -> Response:
         serializer = UserLoginSerializer(data=request.data, context={"request": request})
@@ -77,6 +82,9 @@ class TokenRefreshCookieView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
+    # Refresh happens on every 15-minute access expiry so the rate is
+    # looser than login — 30/minute.
+    throttle_scope = "auth_refresh"
 
     def post(self, request: Request) -> Response:
         raw_refresh = request.data.get("refresh") if isinstance(request.data, dict) else None

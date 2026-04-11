@@ -119,3 +119,7 @@ celerybeat.pid
 CHANGELOG.md
 CLAUDE.md
 PLANS.md
+
+# Local-only working docs (same pattern as CHANGELOG.md / PLANS.md)
+docs/
+.$*.bkp

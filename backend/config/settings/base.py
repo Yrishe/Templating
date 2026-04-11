@@ -145,10 +145,17 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
+    # Tighter per-endpoint throttles for brute-force-prone paths. Auth
+    # endpoints use a scoped throttle — see accounts/views.py for the
+    # `throttle_scope` attribute on LoginView / SignupView /
+    # TokenRefreshCookieView.
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/day",
-        "user": "1000/day",
+        "anon": "60/hour",
+        "user": "2000/day",
+        "auth": "10/minute",
+        "auth_refresh": "30/minute",
     },
 }
 
@@ -158,7 +165,11 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    # Shortened from 7 days → 24 hours to reduce the blast radius of a
+    # stolen refresh token. With per-tab sessionStorage + 24 h TTL +
+    # rotation + blacklist-after-rotation, the worst case for an
+    # exfiltrated token is a 24 h window rather than a week.
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=24),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -166,23 +177,37 @@ SIMPLE_JWT = {
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    # Cookie settings
-    "AUTH_COOKIE": "access_token",
-    "AUTH_COOKIE_REFRESH": "refresh_token",
-    "AUTH_COOKIE_SECURE": True,
-    "AUTH_COOKIE_HTTP_ONLY": True,
-    "AUTH_COOKIE_PATH": "/",
-    "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
 # ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
 
-CORS_ALLOWED_ORIGINS: list[str] = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
-).split(",")
+# Accept a comma-separated env var and strip out whitespace / empty entries
+# so a misconfigured env (`CORS_ALLOWED_ORIGINS=`, `, ,`) doesn't produce a
+# one-element list with a bogus origin — which previously would silently
+# reject every preflight.
+CORS_ALLOWED_ORIGINS: list[str] = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+    ).split(",")
+    if origin.strip()
+]
 CORS_ALLOW_CREDENTIALS = True
+
+# ---------------------------------------------------------------------------
+# File uploads — hard limits
+# ---------------------------------------------------------------------------
+
+# Cap POST body size at 15 MB and individual file upload at 10 MB. Contract
+# PDFs and change-request attachments are the two FileFields in the app.
+# Serializers enforce a stricter per-field 10 MB limit + PDF magic-byte
+# validation (see contracts/serializers.py). Django rejects larger bodies
+# at middleware time with 413 Request Entity Too Large, which is cheaper
+# than parsing a malicious multipart payload.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024   # 15 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
 
 # ---------------------------------------------------------------------------
 # Channels (WebSocket)
