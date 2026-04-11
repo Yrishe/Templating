@@ -71,7 +71,16 @@ class ContractRequest(models.Model):
         related_name="contract_requests",
     )
     description = models.TextField()
+    # Optional supporting document — e.g. a redlined PDF showing the requested
+    # changes. Stored alongside the request so the manager can open it while
+    # deciding whether to approve or reject.
+    attachment = models.FileField(
+        upload_to="contract_requests/", null=True, blank=True
+    )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING)
+    # Manager's justification when approving or rejecting. Captured via the
+    # approve/reject endpoints so accounts can see *why* a request moved.
+    review_comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
     reviewed_by = models.ForeignKey(

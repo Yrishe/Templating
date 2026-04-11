@@ -30,6 +30,8 @@ export interface Tag {
 export interface Project {
   id: string
   account: string
+  /** User ID of the Account's subscriber (i.e. the project's real owner). */
+  account_subscriber_id: string | null
   name: string
   description: string
   generic_email: string
@@ -66,7 +68,10 @@ export interface ContractRequest {
   account: string
   project: string
   description: string
+  attachment: string | null
+  attachment_url: string | null
   status: ContractRequestStatus
+  review_comment: string
   created_at: string
   reviewed_at: string | null
   reviewed_by: string | null
@@ -74,8 +79,12 @@ export interface ContractRequest {
 
 export type NotificationType =
   | 'contract_request'
+  | 'contract_request_approved'
+  | 'contract_request_rejected'
   | 'contract_update'
   | 'chat_message'
+  | 'new_email'
+  | 'deadline_upcoming'
   | 'manager_alert'
   | 'system'
 export interface Notification {

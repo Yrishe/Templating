@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
-import { MessageSquare, FileText, Calendar, LayoutDashboard, ArrowLeft } from 'lucide-react'
+import { MessageSquare, FileText, FilePen, Calendar, LayoutDashboard, UserPlus, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useProject } from '@/hooks/use-projects'
 import { ROUTES } from '@/lib/constants'
@@ -12,7 +12,15 @@ const projectTabs = [
   { label: 'Overview', href: (id: string) => ROUTES.PROJECT(id), icon: LayoutDashboard },
   { label: 'Chat', href: (id: string) => ROUTES.PROJECT_CHAT(id), icon: MessageSquare },
   { label: 'Contract', href: (id: string) => ROUTES.PROJECT_CONTRACT(id), icon: FileText },
+  // Dedicated history view for contract change requests — shows pending
+  // rows for the manager to approve/reject and the full audit trail
+  // (approved, rejected, pending) for everyone.
+  { label: 'Change Requests', href: (id: string) => ROUTES.PROJECT_CHANGE_REQUESTS(id), icon: FilePen },
   { label: 'Timeline', href: (id: string) => ROUTES.PROJECT_TIMELINE(id), icon: Calendar },
+  // Invite additional members post-creation. Server-side the endpoint is
+  // gated to manager OR the project's account owner, so invited_account
+  // users hitting this page will get a 403 on submit.
+  { label: 'Invite', href: (id: string) => ROUTES.PROJECT_INVITE(id), icon: UserPlus },
 ]
 
 export default function ProjectLayout({ children }: { children: React.ReactNode }) {

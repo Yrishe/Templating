@@ -2,8 +2,8 @@
 
 import React, { useRef, useState } from 'react'
 import {
-  FileText, Upload, CheckCircle, Clock, AlertTriangle,
-  Download, ThumbsUp, ThumbsDown, Send, X,
+  FileText, Upload, CheckCircle, CheckCircle2, Clock, AlertTriangle,
+  Download, Send,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,14 +15,11 @@ import {
   useCreateContract,
   useUpdateContract,
   useActivateContract,
-  useContractRequests,
   useCreateContractRequest,
-  useApproveContractRequest,
-  useRejectContractRequest,
 } from '@/hooks/use-projects'
 import { useAuth } from '@/hooks/use-auth'
 import { formatDateTime } from '@/lib/utils'
-import type { Contract, ContractRequest } from '@/types'
+import type { Contract } from '@/types'
 
 // ─── Status badge ────────────────────────────────────────────────────────────
 
@@ -52,6 +49,11 @@ function UploadContractForm({ projectId, existingContract }: UploadContractProps
   const [title, setTitle] = useState(existingContract?.title ?? '')
   const [file, setFile] = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Tracks whether the *most recent* user action was a successful save, so
+  // the banner clears as soon as they start editing the form again. Not
+  // tied to mutation.isSuccess because that stays true until reset and
+  // would reappear on unrelated re-renders.
+  const [justSaved, setJustSaved] = useState<null | 'created' | 'updated'>(null)
   const createContract = useCreateContract()
   const updateContract = useUpdateContract(existingContract?.id ?? '', projectId)
 
@@ -68,14 +70,26 @@ function UploadContractForm({ projectId, existingContract }: UploadContractProps
       updateForm.append('title', title)
       if (file) updateForm.append('file', file)
       await updateContract.mutateAsync(updateForm)
+      setJustSaved('updated')
     } else {
       await createContract.mutateAsync(form)
+      setJustSaved('created')
     }
     setFile(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
   const isPending = createContract.isPending || updateContract.isPending
+  // Any further edit to the form clears the banner — it's an acknowledgement
+  // gesture, no setTimeout needed.
+  const handleTitleChange = (value: string) => {
+    setTitle(value)
+    if (justSaved) setJustSaved(null)
+  }
+  const handleFileChange = (next: File | null) => {
+    setFile(next)
+    if (justSaved) setJustSaved(null)
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -84,7 +98,7 @@ function UploadContractForm({ projectId, existingContract }: UploadContractProps
         <Input
           id="contract-title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => handleTitleChange(e.target.value)}
           placeholder="e.g. Vendor Agreement 2026"
           required
         />
@@ -98,7 +112,7 @@ function UploadContractForm({ projectId, existingContract }: UploadContractProps
           ref={fileRef}
           type="file"
           accept=".pdf"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
           className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
           required={!existingContract}
         />
@@ -108,6 +122,24 @@ function UploadContractForm({ projectId, existingContract }: UploadContractProps
           </p>
         )}
       </div>
+      {justSaved && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800"
+        >
+          <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">
+              {justSaved === 'created' ? 'Contract uploaded' : 'Contract updated'}
+            </p>
+            <p className="text-xs text-green-700">
+              {justSaved === 'created'
+                ? 'Your contract has been saved and is ready for review.'
+                : 'Your changes to the contract have been saved.'}
+            </p>
+          </div>
+        </div>
+      )}
       {(createContract.isError || updateContract.isError) && (
         <p className="text-sm text-destructive">Failed to save contract. Please try again.</p>
       )}
@@ -119,67 +151,88 @@ function UploadContractForm({ projectId, existingContract }: UploadContractProps
   )
 }
 
-// ─── Account: Submit contract request ────────────────────────────────────────
+// ─── Account: Submit contract change request ─────────────────────────────────
 
 interface SubmitRequestProps {
   projectId: string
-  accountId: string
-  existingRequest: ContractRequest | null
 }
 
-function SubmitRequestForm({ projectId, accountId, existingRequest }: SubmitRequestProps) {
+function SubmitRequestForm({ projectId }: SubmitRequestProps) {
   const [description, setDescription] = useState('')
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const attachmentRef = useRef<HTMLInputElement>(null)
   const createRequest = useCreateContractRequest()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await createRequest.mutateAsync({ project: projectId, account: accountId, description })
+    // `account` is now assigned server-side from the project; the client only
+    // needs to supply the project, description, and (optionally) a file.
+    if (attachment) {
+      const form = new FormData()
+      form.append('project', projectId)
+      form.append('description', description)
+      form.append('attachment', attachment)
+      await createRequest.mutateAsync(form)
+    } else {
+      await createRequest.mutateAsync({ project: projectId, description })
+    }
     setDescription('')
+    setAttachment(null)
+    if (attachmentRef.current) attachmentRef.current.value = ''
   }
 
-  if (existingRequest) {
-    const statusConfig = {
-      pending: { variant: 'warning' as const, label: 'Pending review', icon: Clock },
-      approved: { variant: 'success' as const, label: 'Approved', icon: CheckCircle },
-      rejected: { variant: 'destructive' as const, label: 'Rejected', icon: X },
-    }[existingRequest.status]
-    const Icon = statusConfig.icon
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Badge variant={statusConfig.variant} className="flex items-center gap-1">
-            <Icon className="h-3 w-3" />
-            {statusConfig.label}
-          </Badge>
-          {existingRequest.reviewed_at && (
-            <span className="text-xs text-muted-foreground">
-              Reviewed {formatDateTime(existingRequest.reviewed_at)}
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground">{existingRequest.description}</p>
-        {existingRequest.status === 'rejected' && (
-          <p className="text-xs text-destructive">
-            Your request was rejected. Update your contract and submit a new request.
-          </p>
-        )}
-      </div>
-    )
+  // Show the success banner after a submit until the user starts typing
+  // a new request — that's a natural "acknowledge" gesture that doesn't
+  // need a setTimeout, toast library, or manual dismiss button.
+  const showSuccess = createRequest.isSuccess && description === '' && !attachment
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value)
+    if (createRequest.isSuccess && value !== '') {
+      createRequest.reset()
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="space-y-2">
-        <Label htmlFor="request-description">Description / terms summary</Label>
+        <Label htmlFor="request-description">Change request details</Label>
         <textarea
           id="request-description"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Briefly describe the contract terms you're submitting for approval..."
+          onChange={(e) => handleDescriptionChange(e.target.value)}
+          placeholder="Describe the change you're requesting on the contract..."
           className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
           required
         />
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="request-attachment">Supporting file (optional)</Label>
+        <input
+          id="request-attachment"
+          ref={attachmentRef}
+          type="file"
+          onChange={(e) => setAttachment(e.target.files?.[0] ?? null)}
+          className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+        />
+        <p className="text-xs text-muted-foreground">
+          Attach a redlined contract or any supporting document for the manager to review.
+        </p>
+      </div>
+      {showSuccess && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800"
+        >
+          <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Change request submitted</p>
+            <p className="text-xs text-green-700">
+              The manager will review it. You can track its status on the{' '}
+              Change Requests tab.
+            </p>
+          </div>
+        </div>
+      )}
       {createRequest.isError && (
         <p className="text-sm text-destructive">Failed to submit request. Please try again.</p>
       )}
@@ -188,60 +241,6 @@ function SubmitRequestForm({ projectId, accountId, existingRequest }: SubmitRequ
         {createRequest.isPending ? 'Submitting...' : 'Submit for approval'}
       </Button>
     </form>
-  )
-}
-
-// ─── Manager: Review contract requests ───────────────────────────────────────
-
-interface ReviewPanelProps {
-  projectId: string
-  requests: ContractRequest[]
-}
-
-function ContractRequestReviewPanel({ projectId, requests }: ReviewPanelProps) {
-  const approve = useApproveContractRequest(projectId)
-  const reject = useRejectContractRequest(projectId)
-  const pending = requests.filter((r) => r.status === 'pending')
-
-  if (pending.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground py-2">No pending contract requests.</p>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      {pending.map((req) => (
-        <div key={req.id} className="border rounded-md p-4 space-y-3">
-          <div>
-            <p className="text-sm font-medium">Contract request</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Submitted {formatDateTime(req.created_at)}
-            </p>
-          </div>
-          <p className="text-sm">{req.description}</p>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => approve.mutate(req.id)}
-              disabled={approve.isPending || reject.isPending}
-            >
-              <ThumbsUp className="h-3.5 w-3.5 mr-1.5" />
-              Approve
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => reject.mutate(req.id)}
-              disabled={approve.isPending || reject.isPending}
-            >
-              <ThumbsDown className="h-3.5 w-3.5 mr-1.5" />
-              Reject
-            </Button>
-          </div>
-        </div>
-      ))}
-    </div>
   )
 }
 
@@ -254,15 +253,16 @@ interface ContractViewProps {
 export function ContractView({ projectId }: ContractViewProps) {
   const { user } = useAuth()
   const { data, isLoading, isError } = useProjectContract(projectId)
-  const { data: requestsData } = useContractRequests(projectId)
   const activate = useActivateContract(projectId)
 
   const contract = data?.results?.[0] ?? null
-  const requests = requestsData?.results ?? []
-  const latestRequest = requests[0] ?? null
 
   const isManager = user?.role === 'manager'
   const isAccount = user?.role === 'account'
+  // Contract change requests can be raised by Account users (creator) AND
+  // invited users, per the project's collaboration rules — both are project
+  // members with a non-manager role.
+  const canRaiseRequest = !!user && user.role !== 'manager'
 
   if (isLoading) {
     return (
@@ -348,40 +348,23 @@ export function ContractView({ projectId }: ContractViewProps) {
         </CardContent>
       </Card>
 
-      {/* Contract request panel */}
-      {isAccount && contract && (
+      {/* Change request input — any non-manager project member can raise
+          a change request at any time as long as a contract has been
+          uploaded. Unlike the previous version this stays available even
+          when there are already pending/approved/rejected requests in
+          flight; the full history lives on the Change Requests tab. */}
+      {canRaiseRequest && contract && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Approval request</CardTitle>
+            <CardTitle className="text-base">Request a contract change</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Submit your contract for Manager review and approval.
+              Describe the change you'd like and, optionally, attach a
+              supporting file. The manager will review it on the Change
+              Requests tab.
             </p>
           </CardHeader>
           <CardContent>
-            <SubmitRequestForm
-              projectId={projectId}
-              accountId={contract.project}
-              existingRequest={latestRequest}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Manager: contract request review */}
-      {isManager && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              Contract Requests
-              {requests.filter((r) => r.status === 'pending').length > 0 && (
-                <Badge variant="warning">
-                  {requests.filter((r) => r.status === 'pending').length} pending
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ContractRequestReviewPanel projectId={projectId} requests={requests} />
+            <SubmitRequestForm projectId={projectId} />
           </CardContent>
         </Card>
       )}

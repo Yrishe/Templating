@@ -41,7 +41,9 @@ export const ROUTES = {
   PROJECT: (id: string) => `/projects/${id}`,
   PROJECT_CHAT: (id: string) => `/projects/${id}/chat`,
   PROJECT_CONTRACT: (id: string) => `/projects/${id}/contract`,
+  PROJECT_CHANGE_REQUESTS: (id: string) => `/projects/${id}/change-requests`,
   PROJECT_TIMELINE: (id: string) => `/projects/${id}/timeline`,
+  PROJECT_INVITE: (id: string) => `/projects/${id}/invite`,
   EMAIL_ORGANISER: (projectId: string) => `/email-organiser/${projectId}`,
 } as const
 

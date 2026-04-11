@@ -30,7 +30,12 @@ def _require_project_membership(project_id, user) -> Project:
         project = Project.objects.get(pk=project_id)
     except Project.DoesNotExist:
         raise NotFound("Project not found.")
-    if not ProjectMembership.objects.filter(project=project, user=user).exists():
+    # Managers have oversight across all projects — same rule as the
+    # projects list endpoint, chat views, etc. Accounts/invited users
+    # still need an explicit ProjectMembership row.
+    if user.role != user.MANAGER and not ProjectMembership.objects.filter(
+        project=project, user=user
+    ).exists():
         raise PermissionDenied("You are not a member of this project.")
     return project
 
@@ -246,6 +251,14 @@ class InboundEmailWebhookView(APIView):
             received_at=received_at,
             raw_payload=payload,
         )
+
+        # Notify project members of the new inbound email — best-effort so a
+        # broker outage doesn't fail the webhook.
+        try:
+            from notifications.tasks import create_incoming_email_notification
+            create_incoming_email_notification.delay(str(incoming.id))
+        except Exception:
+            logger.exception("InboundEmailWebhook: failed to enqueue new-email notification")
 
         # Fire the Claude suggestion task — best-effort (gracefully degrades
         # if the task module / Anthropic SDK is unavailable).

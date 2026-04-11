@@ -25,6 +25,14 @@ export default function ProjectOverviewPage() {
   const memberCount = membersData?.count ?? 0
   const pendingRequests = (requestsData?.results ?? []).filter((r) => r.status === 'pending').length
 
+  // A manager who created a project and kept it assigned to themselves has no
+  // counterparty to raise contract requests, so hide the review panel. It
+  // reappears as soon as the project is assigned to a different user.
+  const isManagerSelfOwned =
+    user?.role === 'manager' &&
+    !!project?.account_subscriber_id &&
+    project.account_subscriber_id === user.id
+
   const quickLinks = [
     {
       label: 'Chat',
@@ -129,8 +137,9 @@ export default function ProjectOverviewPage() {
         </div>
       </div>
 
-      {/* Contract request section (manager only) */}
-      {user?.role === 'manager' && pendingRequests > 0 && (
+      {/* Contract request section (manager only, and only when the project
+          is assigned to another user — a manager doesn't review their own). */}
+      {user?.role === 'manager' && !isManagerSelfOwned && pendingRequests > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -149,7 +158,7 @@ export default function ProjectOverviewPage() {
                       <p className="text-sm">{req.description}</p>
                       <p className="text-xs text-muted-foreground">{formatDateTime(req.created_at)}</p>
                     </div>
-                    <Link href={ROUTES.PROJECT_CONTRACT(id)}>
+                    <Link href={ROUTES.PROJECT_CHANGE_REQUESTS(id)}>
                       <Button size="sm" variant="outline">Review</Button>
                     </Link>
                   </div>
@@ -171,6 +180,10 @@ export default function ProjectOverviewPage() {
               <dd>{formatDate(project.created_at)}</dd>
               <dt className="text-muted-foreground">Last updated</dt>
               <dd>{formatDate(project.updated_at)}</dd>
+              <dt className="text-muted-foreground">Project email</dt>
+              <dd className="font-mono text-xs break-all">
+                {project.generic_email || '—'}
+              </dd>
             </dl>
           </CardContent>
         </Card>

@@ -63,23 +63,33 @@ def create_chat_message_notification(self, message_id: str) -> None:
     from notifications.models import Notification
 
     try:
-        message = Message.objects.select_related("chat__project").get(pk=message_id)
+        message = Message.objects.select_related("chat__project", "author").get(pk=message_id)
     except Message.DoesNotExist:
         logger.error("create_chat_message_notification: message %s not found", message_id)
         return
 
+    # `author` is set as the actor so the sender's own feed doesn't get
+    # their own message — see `NotificationListView.get_queryset`.
     Notification.objects.create(
         project=message.chat.project,
         type=Notification.CHAT_MESSAGE,
+        actor=message.author,
     )
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
-def create_contract_update_notification(self, contract_id: str, action: str = "updated") -> None:
+def create_contract_update_notification(
+    self,
+    contract_id: str,
+    action: str = "updated",
+    actor_id: str | None = None,
+) -> None:
     """Create a Notification when a project's contract is created/updated/activated.
 
     `action` is currently informational only — kept on the signature so callers can
     distinguish create vs update vs activate when richer notification copy is added.
+    `actor_id` is the user who triggered the change (if any); used to filter
+    the author out of their own feed.
     """
     from contracts.models import Contract
     from notifications.models import Notification
@@ -93,12 +103,23 @@ def create_contract_update_notification(self, contract_id: str, action: str = "u
     Notification.objects.create(
         project=contract.project,
         type=Notification.CONTRACT_UPDATE,
+        actor_id=actor_id,
     )
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
-def create_contract_request_notification(self, contract_request_id: str) -> None:
-    """Create a Notification triggered by a ContractRequest status change."""
+def create_contract_request_notification(
+    self,
+    contract_request_id: str,
+    lifecycle: str = "raised",
+    actor_id: str | None = None,
+) -> None:
+    """Create a Notification triggered by a ContractRequest lifecycle event.
+
+    `lifecycle` is one of "raised", "approved", "rejected" — maps to the
+    corresponding Notification type so the feed can distinguish a new
+    change request from its approval/rejection.
+    """
     from contracts.models import ContractRequest
     from notifications.models import Notification
 
@@ -108,14 +129,87 @@ def create_contract_request_notification(self, contract_request_id: str) -> None
         logger.error("create_contract_request_notification: contract request %s not found", contract_request_id)
         return
 
+    type_map = {
+        "raised": Notification.CONTRACT_REQUEST,
+        "approved": Notification.CONTRACT_REQUEST_APPROVED,
+        "rejected": Notification.CONTRACT_REQUEST_REJECTED,
+    }
+    notif_type = type_map.get(lifecycle, Notification.CONTRACT_REQUEST)
+
     notification = Notification.objects.create(
         project=cr.project,
-        type=Notification.CONTRACT_REQUEST,
+        type=notif_type,
         triggered_by_contract_request=cr,
+        actor_id=actor_id,
     )
 
     # Queue the email dispatch
     send_notification_email.delay(str(notification.pk))
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+def create_incoming_email_notification(self, incoming_email_id: str) -> None:
+    """Create a Notification when a new inbound email is ingested."""
+    from email_organiser.models import IncomingEmail
+    from notifications.models import Notification
+
+    try:
+        email = IncomingEmail.objects.select_related("project").get(pk=incoming_email_id)
+    except IncomingEmail.DoesNotExist:
+        logger.error("create_incoming_email_notification: email %s not found", incoming_email_id)
+        return
+
+    # No `actor` — the sender is an external address, not a local user.
+    Notification.objects.create(
+        project=email.project,
+        type=Notification.NEW_EMAIL,
+    )
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def check_upcoming_deadlines(self, lookahead_days: int = 3) -> int:
+    """Emit DEADLINE_UPCOMING notifications for TimelineEvents nearing their
+    end_date.
+
+    Deduplication: each TimelineEvent gets at most one DEADLINE_UPCOMING
+    notification via the `triggered_by_timeline_event` FK link. If a
+    notification already exists for the event, skip it.
+
+    Returns the number of notifications created so the beat runner can
+    log a heartbeat.
+
+    NOTE: Schedule in Celery beat in production — see PLANS.md §6. This
+    task is safe to run manually via a management command or
+    `check_upcoming_deadlines.delay()` until the beat schedule lands.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+    from notifications.models import Notification
+    from projects.models import TimelineEvent
+
+    today = timezone.now().date()
+    window_end = today + timedelta(days=lookahead_days)
+
+    events = TimelineEvent.objects.filter(
+        end_date__isnull=False,
+        end_date__gte=today,
+        end_date__lte=window_end,
+    ).exclude(status=TimelineEvent.COMPLETED).select_related("timeline__project")
+
+    created = 0
+    for event in events:
+        if Notification.objects.filter(
+            triggered_by_timeline_event=event,
+            type=Notification.DEADLINE_UPCOMING,
+        ).exists():
+            continue
+        Notification.objects.create(
+            project=event.timeline.project,
+            type=Notification.DEADLINE_UPCOMING,
+            triggered_by_timeline_event=event,
+        )
+        created += 1
+    return created
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)

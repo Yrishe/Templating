@@ -15,7 +15,13 @@ def _get_project_for_user(project_id, user) -> Project:
         project = Project.objects.get(pk=project_id)
     except Project.DoesNotExist:
         raise NotFound("Project not found.")
-    if not ProjectMembership.objects.filter(project=project, user=user).exists():
+    # Managers have oversight across all projects; everyone else must be an
+    # explicit member. Mirrors the rule in the projects list endpoint so a
+    # manager can participate in any project's chat/timeline/etc. without
+    # first being added as a ProjectMembership row.
+    if user.role != user.MANAGER and not ProjectMembership.objects.filter(
+        project=project, user=user
+    ).exists():
         raise PermissionDenied("You are not a member of this project.")
     return project
 

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, tokenStorage } from '@/lib/api'
 import type { User, LoginCredentials, SignupData } from '@/types'
 
 interface AuthContextValue {
@@ -14,6 +14,12 @@ interface AuthContextValue {
   refreshUser: () => Promise<void>
 }
 
+interface AuthResponseBody {
+  user: User
+  access: string
+  refresh: string
+}
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -21,11 +27,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   const refreshUser = useCallback(async () => {
+    // If this tab has no access token in sessionStorage there's nothing to
+    // check — skip the /me call to avoid a guaranteed 401 on a fresh tab.
+    if (!tokenStorage.getAccess()) {
+      setUser(null)
+      return
+    }
     try {
       const me = await api.get<User>('/api/auth/me/')
       setUser(me)
     } catch {
       setUser(null)
+      tokenStorage.clear()
     }
   }, [])
 
@@ -34,21 +47,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshUser])
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    const user = await api.post<User>('/api/auth/login/', credentials)
-    setUser(user)
+    const resp = await api.post<AuthResponseBody>('/api/auth/login/', credentials)
+    tokenStorage.set(resp.access, resp.refresh)
+    setUser(resp.user)
   }, [])
 
   const logout = useCallback(async () => {
+    const refresh = tokenStorage.getRefresh()
     try {
-      await api.post('/api/auth/logout/', {})
+      await api.post('/api/auth/logout/', { refresh })
     } finally {
+      // Always clear local state — a network failure on blacklist shouldn't
+      // trap the user in a "logged in" UI for this tab.
+      tokenStorage.clear()
       setUser(null)
     }
   }, [])
 
   const signup = useCallback(async (data: SignupData) => {
-    const user = await api.post<User>('/api/auth/signup/', data)
-    setUser(user)
+    const resp = await api.post<AuthResponseBody>('/api/auth/signup/', data)
+    tokenStorage.set(resp.access, resp.refresh)
+    setUser(resp.user)
   }, [])
 
   const value: AuthContextValue = {

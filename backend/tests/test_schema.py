@@ -38,7 +38,7 @@ EXPECTED_TABLES = [
 @pytest.mark.django_db
 def test_all_tables_exist():
     with connection.cursor() as cursor:
-        table_names = connection.introspection.get_table_names(cursor)
+        table_names = connection.introspection.table_names(cursor)
     for table in EXPECTED_TABLES:
         assert table in table_names, f"Missing table: {table}"
 
@@ -195,7 +195,7 @@ def test_message_chat_fk_cascade(project, manager_user):
 def test_migrations_applied():
     """If we reach here without errors all migrations have been applied."""
     with connection.cursor() as cursor:
-        tables = connection.introspection.get_table_names(cursor)
+        tables = connection.introspection.table_names(cursor)
     assert len(tables) > 0
 
 

@@ -80,12 +80,20 @@ class ProjectSerializer(serializers.ModelSerializer):
         required=False,
         source="tags",
     )
+    # The User who owns the project's Account. Exposed so the frontend can
+    # tell when a manager is looking at a project they created and kept for
+    # themselves — used to hide the Contract Requests review panel in that
+    # case (managers don't raise requests on their own project).
+    account_subscriber_id = serializers.UUIDField(
+        source="account.subscriber_id", read_only=True
+    )
 
     class Meta:
         model = Project
         fields = [
             "id",
             "account",
+            "account_subscriber_id",
             "name",
             "description",
             "generic_email",
@@ -96,7 +104,14 @@ class ProjectSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         # generic_email is auto-generated server-side; never user-supplied
-        read_only_fields = ["id", "account", "generic_email", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "account",
+            "account_subscriber_id",
+            "generic_email",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class ProjectDetailSerializer(ProjectSerializer):

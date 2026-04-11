@@ -97,12 +97,20 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return (
-            Project.objects.filter(memberships__user=user)
-            .select_related("account")
+        base = (
+            Project.objects.select_related("account")
             .prefetch_related("memberships__user")
-            .distinct()
         )
+        # Managers have oversight across the whole tenant — mirror the list
+        # view, which already returns all projects for managers. Without
+        # this, a manager who lands on /projects/<id>/ for a project they
+        # didn't personally create gets a 404 even though the project
+        # appears in their projects list. That mismatch also broke the
+        # contract upload flow (GET /api/contracts/?project=<id> returns
+        # empty → the form POSTs → hits the OneToOne unique constraint).
+        if user.role == user.MANAGER:
+            return base.distinct()
+        return base.filter(memberships__user=user).distinct()
 
 
 class ProjectTimelineView(generics.RetrieveAPIView):
@@ -115,7 +123,12 @@ class ProjectTimelineView(generics.RetrieveAPIView):
             project = Project.objects.get(pk=project_id)
         except Project.DoesNotExist:
             raise NotFound("Project not found.")
-        if not ProjectMembership.objects.filter(project=project, user=self.request.user).exists():
+        user = self.request.user
+        # Managers have oversight on every project's timeline; others must
+        # be an explicit member.
+        if user.role != user.MANAGER and not ProjectMembership.objects.filter(
+            project=project, user=user
+        ).exists():
             raise PermissionDenied("You are not a member of this project.")
         timeline, _ = Timeline.objects.get_or_create(project=project)
         return timeline
@@ -131,8 +144,10 @@ class TimelineEventCreateView(generics.CreateAPIView):
             project = Project.objects.get(pk=project_id)
         except Project.DoesNotExist:
             raise NotFound("Project not found.")
-        if not ProjectMembership.objects.filter(project=project, user=self.request.user).exists():
-            raise PermissionDenied("You are not a member of this project.")
+        # IsManager permission already filters to managers only; since
+        # managers are implicit members of every project the old
+        # ProjectMembership existence check would reject them for projects
+        # they didn't personally join.
         timeline, _ = Timeline.objects.get_or_create(project=project)
         serializer.save(timeline=timeline)
 
@@ -146,7 +161,8 @@ class ProjectMembershipListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         qs = ProjectMembership.objects.select_related("user")
-        # Non-managers can only see memberships for projects they belong to
+        # Managers see every project's membership (oversight model).
+        # Non-managers only see memberships for projects they belong to.
         if user.role != user.MANAGER:
             my_projects = ProjectMembership.objects.filter(user=user).values_list("project_id", flat=True)
             qs = qs.filter(project__in=my_projects)

@@ -30,10 +30,29 @@ class ContractSerializer(serializers.ModelSerializer):
 
 
 class ContractRequestSerializer(serializers.ModelSerializer):
+    attachment_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ContractRequest
         fields = [
-            "id", "account", "project", "description", "status",
+            "id", "account", "project", "description",
+            "attachment", "attachment_url",
+            "status", "review_comment",
             "created_at", "reviewed_at", "reviewed_by",
         ]
-        read_only_fields = ["id", "status", "created_at", "reviewed_at", "reviewed_by"]
+        # `account` is resolved server-side from the project — the client only
+        # supplies `project`, `description`, and (optionally) `attachment`.
+        # `review_comment` is set via the approve/reject endpoints, not on
+        # create, so it's read-only here.
+        read_only_fields = [
+            "id", "account", "attachment_url", "status", "review_comment",
+            "created_at", "reviewed_at", "reviewed_by",
+        ]
+
+    def get_attachment_url(self, obj: ContractRequest) -> str | None:
+        if not obj.attachment:
+            return None
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.attachment.url)
+        return obj.attachment.url

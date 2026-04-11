@@ -1,39 +1,56 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import {
   Bell,
-  Check,
   CheckCheck,
   AlertCircle,
   FileText,
   FilePen,
   MessageSquare,
   Info,
+  ThumbsUp,
+  ThumbsDown,
+  Mail,
+  Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/hooks/use-notifications'
 import { formatRelativeTime } from '@/lib/utils'
+import { ROUTES } from '@/lib/constants'
 import type { Notification } from '@/types'
 
 // Only project-focused notification types are shown in the dashboard feed.
 // `system` and `manager_alert` still appear in the navbar bell dropdown.
 const PROJECT_FOCUSED_TYPES: Notification['type'][] = [
   'contract_request',
+  'contract_request_approved',
+  'contract_request_rejected',
   'contract_update',
   'chat_message',
+  'new_email',
+  'deadline_upcoming',
 ]
 
 function NotificationIcon({ type }: { type: Notification['type'] }) {
   switch (type) {
     case 'contract_request':
       return <FileText className="h-4 w-4 text-blue-500" />
+    case 'contract_request_approved':
+      return <ThumbsUp className="h-4 w-4 text-emerald-500" />
+    case 'contract_request_rejected':
+      return <ThumbsDown className="h-4 w-4 text-red-500" />
     case 'contract_update':
       return <FilePen className="h-4 w-4 text-purple-500" />
     case 'chat_message':
       return <MessageSquare className="h-4 w-4 text-green-500" />
+    case 'new_email':
+      return <Mail className="h-4 w-4 text-orange-500" />
+    case 'deadline_upcoming':
+      return <Clock className="h-4 w-4 text-amber-500" />
     case 'manager_alert':
       return <AlertCircle className="h-4 w-4 text-yellow-500" />
     case 'system':
@@ -41,20 +58,50 @@ function NotificationIcon({ type }: { type: Notification['type'] }) {
   }
 }
 
+// Notification type → destination page. Clicking a notification deep-links
+// the user to the relevant area of the project instead of just marking it
+// read. Kept in one place so new types only need one update.
+function hrefForNotification(notification: Notification): string {
+  switch (notification.type) {
+    case 'contract_request':
+    case 'contract_request_approved':
+    case 'contract_request_rejected':
+      return ROUTES.PROJECT_CHANGE_REQUESTS(notification.project)
+    case 'contract_update':
+      return ROUTES.PROJECT_CONTRACT(notification.project)
+    case 'chat_message':
+      return ROUTES.PROJECT_CHAT(notification.project)
+    case 'new_email':
+      return ROUTES.EMAIL_ORGANISER(notification.project)
+    case 'deadline_upcoming':
+      return ROUTES.PROJECT_TIMELINE(notification.project)
+    case 'manager_alert':
+    case 'system':
+    default:
+      return ROUTES.PROJECT(notification.project)
+  }
+}
+
 function NotificationItem({ notification }: { notification: Notification }) {
   const markRead = useMarkNotificationRead()
 
   const typeLabels: Record<Notification['type'], string> = {
-    contract_request: 'Contract Request',
+    contract_request: 'Change Request',
+    contract_request_approved: 'Request Approved',
+    contract_request_rejected: 'Request Rejected',
     contract_update: 'Contract Update',
     chat_message: 'New Message',
+    new_email: 'New Email',
+    deadline_upcoming: 'Deadline Upcoming',
     manager_alert: 'Manager Alert',
     system: 'System',
   }
 
   return (
-    <div
-      className={`flex gap-3 p-3 rounded-md transition-colors ${
+    <Link
+      href={hrefForNotification(notification)}
+      onClick={() => markRead.mutate(notification.id)}
+      className={`flex gap-3 p-3 rounded-md transition-colors hover:bg-muted cursor-pointer ${
         !notification.is_read ? 'bg-muted/50' : ''
       }`}
     >
@@ -74,18 +121,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
           {formatRelativeTime(notification.created_at)}
         </p>
       </div>
-      {!notification.is_read && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0"
-          onClick={() => markRead.mutate(notification.id)}
-          aria-label="Mark as read"
-        >
-          <Check className="h-3.5 w-3.5" />
-        </Button>
-      )}
-    </div>
+    </Link>
   )
 }
 
@@ -111,7 +147,7 @@ export function NotificationFeed({ projectId }: NotificationFeedProps = {}) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Notifications
+            Project notifications
             {unreadCount > 0 && (
               <Badge variant="destructive" className="text-xs">
                 {unreadCount}

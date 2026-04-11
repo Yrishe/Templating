@@ -109,6 +109,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _check_membership(self, user, project_id: str) -> bool:
         from projects.models import ProjectMembership
 
+        # Managers have oversight on every project's chat — same rule as
+        # the HTTP views and the projects list endpoint.
+        if getattr(user, "role", None) == "manager":
+            return True
         return ProjectMembership.objects.filter(project_id=project_id, user=user).exists()
 
     @database_sync_to_async

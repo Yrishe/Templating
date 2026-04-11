@@ -20,19 +20,39 @@ class DashboardView(APIView):
     def get(self, request: Request) -> Response:
         user = request.user
 
-        member_project_ids = list(
-            ProjectMembership.objects.filter(user=user).values_list("project_id", flat=True)
-        )
+        # Managers have oversight on every project. Accounts are scoped to
+        # their explicit ProjectMembership rows.
+        if user.role == User.MANAGER:
+            visible_project_ids = list(
+                Project.objects.values_list("pk", flat=True)
+            )
+        else:
+            visible_project_ids = list(
+                ProjectMembership.objects.filter(user=user).values_list(
+                    "project_id", flat=True
+                )
+            )
 
-        # Notifications scoped to user's projects
-        notifications_qs = Notification.objects.filter(project__in=member_project_ids)
-        unread_count = notifications_qs.filter(is_read=False).count()
+        # Notifications scoped to the user's visible projects. Per-user
+        # dismissal means "unread" = "not yet dismissed by this user", so
+        # filter against the `read_by` M2M instead of the legacy
+        # project-wide `is_read` flag. The `actor` Q exclusion keeps rows
+        # with NULL actors (new_email, deadline_upcoming, legacy rows) —
+        # plain `.exclude(actor=user)` would drop them because of Django's
+        # nullable-FK footgun (see notifications/views.py).
+        from django.db.models import Q
+        notifications_qs = (
+            Notification.objects.filter(project__in=visible_project_ids)
+            .exclude(read_by=user)
+            .filter(Q(actor__isnull=True) | ~Q(actor=user))
+        )
+        unread_count = notifications_qs.count()
         recent_notifications = NotificationSerializer(
-            notifications_qs[:5], many=True
+            notifications_qs[:5], many=True, context={"request": request}
         ).data
 
         # Projects — split active vs completed for dashboard stat cards
-        projects_qs = Project.objects.filter(id__in=member_project_ids).select_related("account")
+        projects_qs = Project.objects.filter(id__in=visible_project_ids).select_related("account")
         active_projects_count = projects_qs.filter(status=Project.ACTIVE).count()
         completed_projects_count = projects_qs.filter(status=Project.COMPLETED).count()
         recent_projects = ProjectSerializer(
@@ -59,7 +79,7 @@ class DashboardView(APIView):
                 status=ContractRequest.PENDING
             ).count()
             payload["active_contracts"] = Contract.objects.filter(
-                status=Contract.ACTIVE, project__in=member_project_ids
+                status=Contract.ACTIVE, project__in=visible_project_ids
             ).count()
             payload["pending_manager_count"] = User.objects.filter(
                 role=User.MANAGER, is_active=False

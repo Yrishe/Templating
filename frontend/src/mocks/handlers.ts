@@ -29,6 +29,7 @@ const mockProjects = [
   {
     id: 'proj-1',
     account: 'acc-1',
+    account_subscriber_id: 'user-1',
     name: 'Q3 Vendor Agreement',
     description: 'Annual vendor contract renewal',
     generic_email: 'proj-12345678@inbound.contractmgr.app',
@@ -40,6 +41,7 @@ const mockProjects = [
   {
     id: 'proj-2',
     account: 'acc-1',
+    account_subscriber_id: 'user-1',
     name: 'Software Licence',
     description: 'Enterprise software licensing agreement',
     generic_email: 'proj-87654321@inbound.contractmgr.app',

@@ -20,6 +20,24 @@ DATABASES = {
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
+# ---------------------------------------------------------------------------
+# Celery — eager in dev
+# ---------------------------------------------------------------------------
+#
+# Run tasks synchronously inside the request so developers don't have to keep
+# a `celery -A config worker` terminal running alongside `runserver`. Without
+# this, `.delay()` calls push tasks to Redis and a missing worker silently
+# swallows notifications / contract text extraction / Claude reply generation
+# — the symptom is "I made a change and nothing shows up in the feed".
+#
+# `EAGER_PROPAGATES` means task exceptions bubble up as 500s instead of being
+# logged and lost, which makes debugging broken tasks dramatically easier.
+#
+# Flip both off and run a real worker when you specifically want to test
+# async behaviour (rate limits, retries, beat schedule).
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+
 SIMPLE_JWT = {  # noqa: F405
     **SIMPLE_JWT,  # noqa: F405
     "AUTH_COOKIE_SECURE": False,

@@ -181,19 +181,40 @@ export function useContractRequests(projectId?: string) {
 export function useCreateContractRequest() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: Partial<ContractRequest>) =>
-      api.post<ContractRequest>('/api/contract-requests/', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contract-requests'] })
+    // FormData when the account is attaching a file; plain object otherwise.
+    mutationFn: (data: FormData | Partial<ContractRequest>) => {
+      if (data instanceof FormData) {
+        return api.postForm<ContractRequest>('/api/contract-requests/', data)
+      }
+      return api.post<ContractRequest>('/api/contract-requests/', data)
+    },
+    onSuccess: (created, vars) => {
+      // Invalidate the project-scoped cache so the Contract page and the
+      // Pending Requests stat refresh immediately. Fall back to the created
+      // row's project in case the caller omitted it from `vars`.
+      const projectId =
+        vars instanceof FormData
+          ? (vars.get('project') as string | null) ?? created.project
+          : vars.project ?? created.project
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: projectKeys.contractRequests(projectId) })
+      }
     },
   })
+}
+
+interface ReviewContractRequestPayload {
+  id: string
+  review_comment?: string
 }
 
 export function useApproveContractRequest(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) =>
-      api.post<ContractRequest>(`/api/contract-requests/${id}/approve/`, {}),
+    mutationFn: ({ id, review_comment = '' }: ReviewContractRequestPayload) =>
+      api.post<ContractRequest>(`/api/contract-requests/${id}/approve/`, {
+        review_comment,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.contractRequests(projectId) })
       queryClient.invalidateQueries({ queryKey: projectKeys.contract(projectId) })
@@ -204,8 +225,10 @@ export function useApproveContractRequest(projectId: string) {
 export function useRejectContractRequest(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) =>
-      api.post<ContractRequest>(`/api/contract-requests/${id}/reject/`, {}),
+    mutationFn: ({ id, review_comment = '' }: ReviewContractRequestPayload) =>
+      api.post<ContractRequest>(`/api/contract-requests/${id}/reject/`, {
+        review_comment,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.contractRequests(projectId) })
     },
