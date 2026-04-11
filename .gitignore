@@ -116,3 +116,6 @@ celerybeat.pid
 *.bak
 *.orig
 *.rej
+CHANGELOG.md
+CLAUDE.md
+PLANS.md
