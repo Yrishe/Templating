@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { WS_BASE_URL } from '@/lib/constants'
+import { tokenStorage } from '@/lib/api'
 import type { Message } from '@/types'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -30,8 +31,18 @@ export function useChat({ projectId, chatId, onMessage }: UseChatOptions): UseCh
   const connect = useCallback(() => {
     if (!projectId || !chatId) return
 
+    // Auth moved from httpOnly cookies to per-tab sessionStorage, so we
+    // can't rely on the browser to send credentials on the WS upgrade.
+    // Forward the access token as a query-string param — the ChatConsumer
+    // parses it on connect and verifies via SimpleJWT.
+    const token = tokenStorage.getAccess()
+    if (!token) {
+      setStatus('disconnected')
+      return
+    }
+
     setStatus('connecting')
-    const wsUrl = `${WS_BASE_URL}/ws/chat/${chatId}/`
+    const wsUrl = `${WS_BASE_URL}/ws/chat/${chatId}/?token=${encodeURIComponent(token)}`
 
     try {
       const ws = new WebSocket(wsUrl)

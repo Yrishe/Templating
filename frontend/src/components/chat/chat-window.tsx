@@ -115,9 +115,13 @@ export function ChatWindow({ projectId }: ChatWindowProps) {
           }
 
   return (
-    <div className="flex flex-col h-full min-h-[500px] border rounded-lg overflow-hidden">
+    // Solid white surface (not the glass Card default) so the bubbles have
+    // real contrast. Sits on top of the page's ambient gradient backdrop
+    // the same way a chat app window would — the shadow + rounded corners
+    // keep it consistent with the rest of the UI.
+    <div className="flex flex-col h-full min-h-[500px] rounded-xl border border-border bg-white overflow-hidden [box-shadow:var(--shadow-lifted)] dark:bg-slate-950">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-white dark:bg-slate-950">
         <h3 className="font-semibold text-sm">Project Chat</h3>
         <div className="flex items-center gap-1.5 text-xs">
           {status === 'connecting' ? (
@@ -137,7 +141,7 @@ export function ChatWindow({ projectId }: ChatWindowProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white dark:bg-slate-950">
         {uniqueMessages.length === 0 && (
           <div className="text-center py-12">
             <p className="text-sm text-muted-foreground">
@@ -163,7 +167,7 @@ export function ChatWindow({ projectId }: ChatWindowProps) {
       </div>
 
       {/* Input */}
-      <div className="border-t p-3 bg-background">
+      <div className="border-t border-border p-3 bg-white dark:bg-slate-950">
         <div className="flex gap-2">
           <Input
             value={inputValue}

@@ -1,14 +1,57 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Monitor, Moon, Sun } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import { useTheme, type ThemePreference } from '@/context/theme-context'
 import { api } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import type { User } from '@/types'
+
+// Three-way theme toggle: light / dark / system. `system` follows the OS
+// setting and keeps reacting to changes via a matchMedia listener in the
+// ThemeProvider.
+const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun; hint: string }[] = [
+  { value: 'light', label: 'Light', Icon: Sun, hint: 'Always use the light palette' },
+  { value: 'dark', label: 'Dark', Icon: Moon, hint: 'Always use the dark palette' },
+  { value: 'system', label: 'System', Icon: Monitor, hint: 'Follow your OS preference' },
+]
+
+function ThemeSelector() {
+  const { preference, setPreference } = useTheme()
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {THEME_OPTIONS.map(({ value, label, Icon, hint }) => {
+        const isActive = preference === value
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setPreference(value)}
+            aria-pressed={isActive}
+            className={cn(
+              'flex flex-col items-center gap-2 rounded-xl border p-4 text-sm transition-all duration-150',
+              isActive
+                ? 'border-primary bg-primary/10 text-foreground [box-shadow:var(--shadow-soft)]'
+                : 'border-border bg-white/60 text-muted-foreground hover:border-border hover:bg-white/80 dark:bg-slate-900/40 dark:hover:bg-slate-900/60'
+            )}
+          >
+            <Icon className={cn('h-5 w-5', isActive && 'text-primary')} />
+            <span className="font-medium">{label}</span>
+            <span className="text-[11px] text-muted-foreground text-center leading-tight">
+              {hint}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 export function SettingsContent() {
   const { user, refreshUser } = useAuth()
@@ -50,6 +93,18 @@ export function SettingsContent() {
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground mt-1">Manage your account details.</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>
+            Choose how ContractMgr looks. Your preference is saved in this browser only.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemeSelector />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

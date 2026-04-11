@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,15 +17,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.project_id: str = self.scope["url_route"]["kwargs"]["project_id"]
         self.room_group_name = f"chat_{self.project_id}"
 
-        # Authenticate: user must be available via scope (set by AuthMiddlewareStack + JWT cookie)
-        user = self.scope.get("user")
-        if user is None or not user.is_authenticated:
-            # Try cookie-based JWT auth
-            user = await self._authenticate_from_cookie()
-            if user is None:
-                await self.close(code=4001)
-                return
-            self.scope["user"] = user
+        # Auth: per-tab sessionStorage means we can't use cookies on the WS
+        # upgrade. The frontend passes the access token as `?token=...` on
+        # the WS URL — parse it, verify via SimpleJWT, and load the user.
+        user = await self._authenticate_from_query_string()
+        if user is None:
+            await self.close(code=4001)
+            return
+        self.scope["user"] = user
 
         # Verify project membership
         is_member = await self._check_membership(user, self.project_id)
@@ -76,33 +75,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # ------------------------------------------------------------------
 
     @database_sync_to_async
-    def _authenticate_from_cookie(self):
-        """Attempt to authenticate the user from the JWT cookie in the scope headers."""
-        from django.conf import settings as djsettings
-
-        headers = dict(self.scope.get("headers", []))
-        cookie_header = headers.get(b"cookie", b"").decode("utf-8", errors="ignore")
-        cookie_name: str = djsettings.SIMPLE_JWT.get("AUTH_COOKIE", "access_token")
-
-        raw_token = None
-        for part in cookie_header.split(";"):
-            key, _, value = part.strip().partition("=")
-            if key.strip() == cookie_name:
-                raw_token = value.strip()
-                break
-
-        if not raw_token:
+    def _authenticate_from_query_string(self):
+        """Parse `?token=...` from the WS URL and verify via SimpleJWT."""
+        raw_query = self.scope.get("query_string", b"").decode("utf-8", errors="ignore")
+        params = parse_qs(raw_query)
+        tokens = params.get("token", [])
+        if not tokens:
             return None
-
+        raw_token = tokens[0]
         try:
             from rest_framework_simplejwt.tokens import AccessToken
-
-            token = AccessToken(raw_token)
             from django.contrib.auth import get_user_model
 
+            access = AccessToken(raw_token)
             User = get_user_model()
-            return User.objects.get(pk=token["user_id"])
+            return User.objects.get(pk=access["user_id"])
         except Exception:
+            logger.info("ChatConsumer: token verification failed")
             return None
 
     @database_sync_to_async

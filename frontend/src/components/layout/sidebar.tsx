@@ -59,7 +59,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col border-r bg-background min-h-[calc(100vh-3.5rem)] transition-all duration-200 overflow-hidden',
+        'hidden lg:flex flex-col border-r border-white/60 bg-white/60 backdrop-blur-md min-h-[calc(100vh-3.5rem)] transition-all duration-200 overflow-hidden dark:border-white/10 dark:bg-slate-900/50',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
@@ -92,11 +92,11 @@ export function Sidebar() {
               title={collapsed ? item.label : undefined}
               aria-label={collapsed ? item.label : undefined}
               className={cn(
-                'flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
                 collapsed ? 'justify-center gap-0 px-2' : 'gap-3',
                 isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  ? 'bg-gradient-to-r from-primary to-primary/85 text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-white/70 hover:text-foreground dark:hover:bg-white/5'
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />

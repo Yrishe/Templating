@@ -89,8 +89,8 @@ function NotificationDropdown() {
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-80 rounded-lg border bg-background shadow-lg z-50">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
+        <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-white/70 bg-white/90 backdrop-blur-md [box-shadow:var(--shadow-lifted)] z-50 dark:border-white/10 dark:bg-slate-900/85">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/60 dark:border-white/10">
             <span className="text-sm font-semibold">Notifications</span>
             {unreadCount > 0 && (
               <button
@@ -205,9 +205,9 @@ function ProfileDropdown() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-52 rounded-lg border bg-background shadow-lg z-50 py-1">
+        <div className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-white/70 bg-white/90 backdrop-blur-md [box-shadow:var(--shadow-lifted)] z-50 py-1 dark:border-white/10 dark:bg-slate-900/85">
           {/* User info header */}
-          <div className="px-4 py-3 border-b mb-1">
+          <div className="px-4 py-3 border-b border-white/60 mb-1 dark:border-white/10">
             <p className="text-sm font-medium truncate">
               {user?.first_name} {user?.last_name}
             </p>
@@ -238,12 +238,14 @@ function ProfileDropdown() {
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 w-full border-b border-white/60 bg-white/70 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 [box-shadow:var(--shadow-soft)] dark:border-white/10 dark:bg-slate-900/60">
       <div className="flex h-14 items-center gap-4 px-6">
         <MobileSidebar />
         <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2 font-semibold text-lg">
-          <FileText className="h-5 w-5 text-primary" />
-          <span className="hidden sm:inline">ContractMgr</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
+            <FileText className="h-4 w-4" />
+          </div>
+          <span className="hidden sm:inline tracking-tight">ContractMgr</span>
         </Link>
 
         <div className="ml-auto flex items-center gap-2">

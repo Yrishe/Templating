@@ -4,48 +4,92 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* ─── Base palette (Toggl-ish warm white, soft grays, blue accent) ─── */
+    /* Background: very slightly warm off-white rather than pure #fff so the
+       glass surfaces feel like they're sitting on something instead of
+       floating in a void. */
+    --background: 220 30% 98%;
+    --foreground: 222 47% 11%;
+
+    /* Cards: near-white with a hint of blue; the glass utility layers a
+       translucent version of this on top. */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary blue — kept close to the old value so brand carries over.
+       Slight shift toward a cooler indigo for a more modern feel. */
+    --primary: 222 83% 56%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+
+    --secondary: 220 16% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 16% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 220 16% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+
+    /* Softer border — low-saturation, slightly lifted from background. */
+    --border: 220 15% 91%;
+    --input: 220 15% 91%;
+    --ring: 222 83% 56%;
+
+    /* Larger default radius for the more pill-ish modern look. */
+    --radius: 0.75rem;
+
+    /* ─── Layered shadow tokens ─────────────────────────────────────
+       "Soft" shadows that read as depth without the old blocky look.
+       Used by Card / Navbar / popovers. */
+    --shadow-soft: 0 1px 2px hsl(220 15% 20% / 0.04),
+      0 1px 3px hsl(220 15% 20% / 0.06);
+    --shadow-lifted: 0 2px 4px hsl(220 15% 20% / 0.04),
+      0 8px 24px hsl(220 15% 20% / 0.08);
+
+    /* ─── Body backdrop gradient stops ──────────────────────────────
+       Driven from variables so the .dark scope below can swap them
+       without duplicating the gradient definition on body. */
+    --backdrop-glow-1: 222 83% 56% / 0.08;
+    --backdrop-glow-2: 210 100% 70% / 0.06;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 30% 7%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222 30% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 30% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 20% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 217 20% 17%;
+    --muted-foreground: 215 18% 65%;
+    --accent: 217 20% 17%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 45%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 217 20% 20%;
+    --input: 217 20% 20%;
+    --ring: 224 76% 55%;
+
+    --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.3),
+      0 1px 3px hsl(0 0% 0% / 0.35);
+    --shadow-lifted: 0 2px 4px hsl(0 0% 0% / 0.3),
+      0 8px 24px hsl(0 0% 0% / 0.45);
+
+    /* Dark-mode backdrop glows: cooler, deeper blues so the gradient
+       reads as subtle depth against the near-black surface instead of
+       washing it out. */
+    --backdrop-glow-1: 222 60% 40% / 0.25;
+    --backdrop-glow-2: 210 60% 35% / 0.2;
   }
 }
 
@@ -54,7 +98,45 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Soft ambient backdrop — two overlapping radial gradients tinted with
+       the primary + a neutral highlight. The glass surfaces above this
+       layer become visible because of the colour variation underneath.
+       Fixed so it doesn't repaint on scroll. */
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(
+        circle at 15% 0%,
+        hsl(var(--backdrop-glow-1)),
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 85% 100%,
+        hsl(var(--backdrop-glow-2)),
+        transparent 45%
+      );
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  /* ─── Glass utility ────────────────────────────────────────────────
+     Semi-transparent background + backdrop blur + soft border = the
+     glassmorphism look. Use `.glass` for the navbar / sidebar / popovers.
+     `.glass-card` adds the lifted shadow and radius for card surfaces. */
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border-white/60;
+    box-shadow: var(--shadow-soft);
+  }
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/70 rounded-xl;
+    box-shadow: var(--shadow-lifted);
+  }
+  .dark .glass {
+    @apply bg-slate-900/60 backdrop-blur-md border-white/10;
+  }
+  .dark .glass-card {
+    @apply bg-slate-900/70 backdrop-blur-md border border-white/10;
   }
 }

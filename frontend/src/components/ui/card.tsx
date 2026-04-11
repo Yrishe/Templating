@@ -3,9 +3,17 @@ import { cn } from '@/lib/utils'
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
+    // Glassy card surface: translucent white, backdrop blur, soft layered
+    // shadow via the --shadow-lifted token in globals.css. Picks up the
+    // new 0.75rem --radius so corners feel noticeably softer.
     <div
       ref={ref}
-      className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)}
+      className={cn(
+        'rounded-xl border border-white/70 bg-white/80 backdrop-blur-md text-card-foreground',
+        '[box-shadow:var(--shadow-lifted)]',
+        'dark:border-white/10 dark:bg-slate-900/70',
+        className
+      )}
       {...props}
     />
   )

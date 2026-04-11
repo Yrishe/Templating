@@ -51,8 +51,13 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
         )}
       </div>
 
-      {/* Tab navigation */}
-      <nav className="flex gap-1 border-b" aria-label="Project sections">
+      {/* Tab navigation — pill-shaped tabs on a glass strip instead of the
+          old flat underline. Active tab gets the primary gradient used by
+          the sidebar, so the nav system feels consistent. */}
+      <nav
+        className="flex gap-1 p-1 rounded-xl border border-white/70 bg-white/70 backdrop-blur-md [box-shadow:var(--shadow-soft)] dark:border-white/10 dark:bg-slate-900/60 overflow-x-auto"
+        aria-label="Project sections"
+      >
         {projectTabs.map((tab) => {
           const href = tab.href(id)
           const isActive = pathname === href
@@ -62,10 +67,10 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+                'flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-150 whitespace-nowrap',
                 isActive
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  ? 'bg-gradient-to-r from-primary to-primary/85 text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-white/80 hover:text-foreground dark:hover:bg-white/5'
               )}
             >
               <Icon className="h-4 w-4" />
