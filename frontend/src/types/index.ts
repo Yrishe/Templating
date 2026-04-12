@@ -48,6 +48,7 @@ export interface ProjectMembership {
 }
 
 export type ContractStatus = 'draft' | 'active' | 'expired'
+export type ContractTextSource = 'none' | 'pypdf' | 'textract' | 'manual'
 export interface Contract {
   id: string
   project: string
@@ -55,6 +56,7 @@ export interface Contract {
   file: string | null
   file_url: string | null
   content: string
+  text_source: ContractTextSource
   status: ContractStatus
   created_by: string
   created_at: string
@@ -85,6 +87,9 @@ export type NotificationType =
   | 'chat_message'
   | 'new_email'
   | 'deadline_upcoming'
+  | 'timeline_comment'
+  | 'email_high_relevance'
+  | 'email_occurrence_unresolved'
   | 'manager_alert'
   | 'system'
 export interface Notification {
@@ -106,6 +111,24 @@ export interface Message {
   updated_at: string
 }
 
+export type TimelineEventPriority = 'low' | 'medium' | 'high' | 'critical'
+export type TimelineCommentType =
+  | 'general'
+  | 'completion_confirmation'
+  | 'status_update'
+  | 'feedback'
+  | 'suggestion'
+
+export interface TimelineComment {
+  id: string
+  event: string
+  author: User
+  content: string
+  comment_type: TimelineCommentType
+  created_at: string
+  updated_at: string
+}
+
 export interface TimelineEvent {
   id: string
   timeline: string
@@ -114,7 +137,13 @@ export interface TimelineEvent {
   start_date: string
   end_date: string | null
   status: 'planned' | 'in_progress' | 'completed'
+  priority: TimelineEventPriority
+  created_by: User | null
+  deadline_reminder_days: number
+  comments: TimelineComment[]
+  comment_count: number
   created_at: string
+  updated_at: string
 }
 
 export interface Timeline {
@@ -146,6 +175,34 @@ export interface FinalResponse {
   sent_at: string | null
 }
 
+export type EmailRelevance = 'high' | 'medium' | 'low' | 'none'
+export type EmailCategory =
+  | 'delay'
+  | 'damage'
+  | 'scope_change'
+  | 'costs'
+  | 'delivery'
+  | 'compliance'
+  | 'quality'
+  | 'dispute'
+  | 'general'
+  | 'irrelevant'
+
+export interface EmailAnalysis {
+  id: string
+  email: string
+  agent_topic: string
+  risk_level: 'low' | 'medium' | 'high' | 'critical'
+  risk_summary: string
+  contract_references: string
+  mitigation: string
+  suggested_response: string
+  resolution_path: string
+  timeline_impact: string
+  generated_timeline_event: string | null
+  created_at: string
+}
+
 export interface IncomingEmail {
   id: string
   project: string
@@ -157,6 +214,12 @@ export interface IncomingEmail {
   message_id: string
   received_at: string
   is_processed: boolean
+  is_relevant: boolean
+  relevance: EmailRelevance
+  category: EmailCategory
+  keywords: string
+  is_resolved: boolean
+  analysis: EmailAnalysis | null
   created_at: string
 }
 

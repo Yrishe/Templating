@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -81,8 +79,18 @@ services:
   frontend:
     build:
       context: ./frontend
+      # Target the `deps` stage of frontend/Dockerfile — it's the only stage
+      # that has `node_modules` sitting at /app/node_modules. The final
+      # `runner` stage is a lean production image with only the Next.js
+      # standalone output, which can't run `npm run dev`. Stopping at `deps`
+      # gives us an image with node_modules already installed; the named
+      # anonymous volume below then preserves that directory through the
+      # `./frontend:/app` host mount.
+      target: deps
     restart: unless-stopped
-    command: npm run dev
+    # Override the Dockerfile CMD; `deps` doesn't set one and we want the
+    # Next dev server with HMR against the mounted host source.
+    command: sh -c "npm install --silent && npm run dev"
     env_file:
       - .env
     ports:

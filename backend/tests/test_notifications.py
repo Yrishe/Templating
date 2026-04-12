@@ -124,39 +124,50 @@ class TestPerUserDismissal:
         subscriber_client: APIClient,
         manager_client: APIClient,
         project,
-        manager_user,
-        subscriber_user,
     ):
-        """Mark-all-read affects only the clicker's view, not globally."""
+        """Mark-all-read affects only the clicker's view, not globally.
+
+        Use `actor=None` notifications (the shape of new_email /
+        deadline_upcoming) so both users can see them — the actor
+        suppression filter can't interfere with the invariant we're
+        actually testing here.
+        """
         Notification.objects.create(
-            project=project,
-            type=Notification.CONTRACT_REQUEST,
-            actor=manager_user,  # visible to subscriber
+            project=project, type=Notification.NEW_EMAIL, actor=None
         )
         Notification.objects.create(
-            project=project,
-            type=Notification.CHAT_MESSAGE,
-            actor=manager_user,  # visible to subscriber
+            project=project, type=Notification.DEADLINE_UPCOMING, actor=None
         )
+
+        # Before: both users see both rows.
+        assert (
+            subscriber_client.get(f"/api/notifications/?project={project.id}")
+            .json()["count"]
+            == 2
+        )
+        assert (
+            manager_client.get(f"/api/notifications/?project={project.id}")
+            .json()["count"]
+            == 2
+        )
+
+        # Subscriber dismisses everything from their feed.
         subscriber_client.post("/api/notifications/mark-all-read/")
 
-        # Subscriber's feed is empty
+        # Subscriber's feed is now empty…
         assert (
             subscriber_client.get(f"/api/notifications/?project={project.id}")
             .json()["count"]
             == 0
         )
-
-        # Create a third notification caused by the subscriber — they
-        # shouldn't see it (actor suppression), but the manager should
-        # still see ALL three.
-        Notification.objects.create(
-            project=project,
-            type=Notification.CONTRACT_REQUEST,
-            actor=subscriber_user,
+        # …but the manager still sees both rows. That's the invariant —
+        # read_by is per-user, so one user clicking mark-all-read doesn't
+        # affect anyone else.
+        assert (
+            manager_client.get(f"/api/notifications/?project={project.id}")
+            .json()["count"]
+            == 2
         )
-        mresp = manager_client.get(f"/api/notifications/?project={project.id}")
-        assert mresp.json()["count"] == 3
 
 
 # ─── Manager oversight ───────────────────────────────────────────────────

@@ -55,8 +55,8 @@ class ContractSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contract
         fields = [
-            "id", "project", "title", "file", "file_url", "content", "status",
-            "created_by", "created_at", "updated_at", "activated_at",
+            "id", "project", "title", "file", "file_url", "content", "text_source",
+            "status", "created_by", "created_at", "updated_at", "activated_at",
         ]
         read_only_fields = ["id", "file_url", "created_by", "created_at", "updated_at", "activated_at"]
 

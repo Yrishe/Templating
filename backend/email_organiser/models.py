@@ -54,9 +54,47 @@ class IncomingEmail(models.Model):
 
     Created by the SES/SendGrid/Postmark inbound webhook (see
     `email_organiser.views.InboundEmailWebhookView`). Each new IncomingEmail
-    triggers `email_organiser.tasks.generate_suggested_reply` which uses Claude
-    to draft a contract-grounded reply stored as a draft `FinalResponse`.
+    triggers the AI classification pipeline which reads the email, assesses it
+    against the project's contract, and organises it by category and relevance.
     """
+
+    # ── Relevance levels ────────────────────────────────────────────────
+    RELEVANCE_HIGH = "high"
+    RELEVANCE_MEDIUM = "medium"
+    RELEVANCE_LOW = "low"
+    RELEVANCE_NONE = "none"  # irrelevant — discarded from base knowledge
+
+    RELEVANCE_CHOICES = [
+        (RELEVANCE_HIGH, "High"),
+        (RELEVANCE_MEDIUM, "Medium"),
+        (RELEVANCE_LOW, "Low"),
+        (RELEVANCE_NONE, "Not Relevant"),
+    ]
+
+    # ── Email categories (what topic does it concern?) ──────────────────
+    CATEGORY_DELAY = "delay"
+    CATEGORY_DAMAGE = "damage"
+    CATEGORY_SCOPE_CHANGE = "scope_change"
+    CATEGORY_COSTS = "costs"
+    CATEGORY_DELIVERY = "delivery"
+    CATEGORY_COMPLIANCE = "compliance"
+    CATEGORY_QUALITY = "quality"
+    CATEGORY_DISPUTE = "dispute"
+    CATEGORY_GENERAL = "general"
+    CATEGORY_IRRELEVANT = "irrelevant"
+
+    CATEGORY_CHOICES = [
+        (CATEGORY_DELAY, "Delay"),
+        (CATEGORY_DAMAGE, "Damage"),
+        (CATEGORY_SCOPE_CHANGE, "Change of Scope"),
+        (CATEGORY_COSTS, "Costs"),
+        (CATEGORY_DELIVERY, "Delivery"),
+        (CATEGORY_COMPLIANCE, "Compliance"),
+        (CATEGORY_QUALITY, "Quality"),
+        (CATEGORY_DISPUTE, "Dispute"),
+        (CATEGORY_GENERAL, "General"),
+        (CATEGORY_IRRELEVANT, "Irrelevant"),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(
@@ -74,8 +112,22 @@ class IncomingEmail(models.Model):
     received_at = models.DateTimeField()
     # Whole webhook payload kept for forensics / future re-parsing
     raw_payload = models.JSONField(null=True, blank=True)
-    # Set True once a suggested reply has been generated for this message
+    # Set True once the AI pipeline has finished processing this email
     is_processed = models.BooleanField(default=False)
+
+    # ── AI classification fields (populated by the classifier agent) ────
+    is_relevant = models.BooleanField(default=True)
+    relevance = models.CharField(
+        max_length=10, choices=RELEVANCE_CHOICES, default=RELEVANCE_MEDIUM
+    )
+    category = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES, default=CATEGORY_GENERAL
+    )
+    # Comma-separated keywords extracted by the classifier
+    keywords = models.TextField(blank=True)
+    # Whether the occurrence raised by this email has been resolved
+    is_resolved = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -83,13 +135,68 @@ class IncomingEmail(models.Model):
         indexes = [
             models.Index(fields=["project"]),
             models.Index(fields=["received_at"]),
+            models.Index(fields=["category"]),
+            models.Index(fields=["relevance"]),
+            models.Index(fields=["is_resolved"]),
         ]
 
     def __str__(self) -> str:
         return f"IncomingEmail({self.sender_email}, {self.subject[:40]})"
 
 
+class EmailAnalysis(models.Model):
+    """AI-generated analysis of a relevant incoming email assessed against the
+    project's contract. Produced by the specialized topic agent (costs, delay,
+    scope, etc.) after the classifier agent has categorised the email."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.OneToOneField(
+        IncomingEmail,
+        on_delete=models.CASCADE,
+        related_name="analysis",
+    )
+    # Which specialized agent produced this analysis
+    agent_topic = models.CharField(max_length=30, blank=True)
+    # Risk assessment
+    risk_level = models.CharField(
+        max_length=10,
+        choices=[("low", "Low"), ("medium", "Medium"), ("high", "High"), ("critical", "Critical")],
+        default="medium",
+    )
+    risk_summary = models.TextField(blank=True)
+    # Contract clauses referenced
+    contract_references = models.TextField(blank=True)
+    # Mitigation suggestions
+    mitigation = models.TextField(blank=True)
+    # Suggested response approach
+    suggested_response = models.TextField(blank=True)
+    # Resolution path
+    resolution_path = models.TextField(blank=True)
+    # Impact on timeline
+    timeline_impact = models.TextField(blank=True)
+    # FK to the auto-generated TimelineEvent (if one was created)
+    generated_timeline_event = models.ForeignKey(
+        "projects.TimelineEvent",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="source_email_analyses",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "email analyses"
+
+    def __str__(self) -> str:
+        return f"EmailAnalysis({self.email}, {self.agent_topic})"
+
+
+# ── Legacy models kept for backward compatibility with existing migrations ──
+
 class FinalResponse(models.Model):
+    """Kept for migration history. The Email Organiser no longer sends emails;
+    it receives and classifies them."""
+
     DRAFT = "draft"
     SENT = "sent"
     SUGGESTED = "suggested"
@@ -112,8 +219,6 @@ class FinalResponse(models.Model):
         null=True,
         related_name="final_responses",
     )
-    # Optional link back to the inbound email this is a reply to —
-    # populated when Claude generates the draft from an IncomingEmail.
     source_incoming_email = models.ForeignKey(
         IncomingEmail,
         on_delete=models.SET_NULL,
@@ -124,7 +229,6 @@ class FinalResponse(models.Model):
     subject = models.CharField(max_length=998)
     content = models.TextField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=DRAFT)
-    # True for content authored by Claude (not a human draft)
     is_ai_generated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

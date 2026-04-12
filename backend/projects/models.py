@@ -102,6 +102,18 @@ class TimelineEvent(models.Model):
         (COMPLETED, "Completed"),
     ]
 
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+    PRIORITY_CHOICES = [
+        (LOW, "Low"),
+        (MEDIUM, "Medium"),
+        (HIGH, "High"),
+        (CRITICAL, "Critical"),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     timeline = models.ForeignKey(Timeline, on_delete=models.CASCADE, related_name="events")
     title = models.CharField(max_length=255)
@@ -109,6 +121,17 @@ class TimelineEvent(models.Model):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PLANNED)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default=MEDIUM)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_timeline_events",
+    )
+    # How many days before end_date to fire a DEADLINE_UPCOMING notification.
+    # Defaults to 3; the project creator can adjust per-event.
+    deadline_reminder_days = models.PositiveIntegerField(default=3)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -117,3 +140,44 @@ class TimelineEvent(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+
+class TimelineComment(models.Model):
+    """Comments on timeline events — used by invitees to confirm completion,
+    provide feedback, or make suggestions."""
+
+    GENERAL = "general"
+    COMPLETION_CONFIRMATION = "completion_confirmation"
+    STATUS_UPDATE = "status_update"
+    FEEDBACK = "feedback"
+    SUGGESTION = "suggestion"
+
+    COMMENT_TYPE_CHOICES = [
+        (GENERAL, "General"),
+        (COMPLETION_CONFIRMATION, "Completion Confirmation"),
+        (STATUS_UPDATE, "Status Update"),
+        (FEEDBACK, "Feedback"),
+        (SUGGESTION, "Suggestion"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey(
+        TimelineEvent, on_delete=models.CASCADE, related_name="comments"
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="timeline_comments",
+    )
+    content = models.TextField()
+    comment_type = models.CharField(
+        max_length=30, choices=COMMENT_TYPE_CHOICES, default=GENERAL
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self) -> str:
+        return f"Comment by {self.author} on {self.event}"

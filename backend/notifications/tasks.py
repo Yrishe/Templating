@@ -167,9 +167,9 @@ def create_incoming_email_notification(self, incoming_email_id: str) -> None:
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
-def check_upcoming_deadlines(self, lookahead_days: int = 3) -> int:
+def check_upcoming_deadlines(self) -> int:
     """Emit DEADLINE_UPCOMING notifications for TimelineEvents nearing their
-    end_date.
+    end_date, respecting each event's own ``deadline_reminder_days`` window.
 
     Deduplication: each TimelineEvent gets at most one DEADLINE_UPCOMING
     notification via the `triggered_by_timeline_event` FK link. If a
@@ -177,27 +177,29 @@ def check_upcoming_deadlines(self, lookahead_days: int = 3) -> int:
 
     Returns the number of notifications created so the beat runner can
     log a heartbeat.
-
-    NOTE: Schedule in Celery beat in production — see PLANS.md §6. This
-    task is safe to run manually via a management command or
-    `check_upcoming_deadlines.delay()` until the beat schedule lands.
     """
-    from datetime import timedelta
     from django.utils import timezone
     from notifications.models import Notification
     from projects.models import TimelineEvent
 
     today = timezone.now().date()
-    window_end = today + timedelta(days=lookahead_days)
 
-    events = TimelineEvent.objects.filter(
-        end_date__isnull=False,
-        end_date__gte=today,
-        end_date__lte=window_end,
-    ).exclude(status=TimelineEvent.COMPLETED).select_related("timeline__project")
+    # Fetch all non-completed events that have an end_date today or later.
+    events = (
+        TimelineEvent.objects.filter(end_date__isnull=False, end_date__gte=today)
+        .exclude(status=TimelineEvent.COMPLETED)
+        .select_related("timeline__project")
+    )
 
     created = 0
     for event in events:
+        # Each event defines its own lookahead window via deadline_reminder_days.
+        from datetime import timedelta
+
+        reminder_start = event.end_date - timedelta(days=event.deadline_reminder_days)
+        if today < reminder_start:
+            continue  # too early for this event
+
         if Notification.objects.filter(
             triggered_by_timeline_event=event,
             type=Notification.DEADLINE_UPCOMING,
@@ -207,6 +209,85 @@ def check_upcoming_deadlines(self, lookahead_days: int = 3) -> int:
             project=event.timeline.project,
             type=Notification.DEADLINE_UPCOMING,
             triggered_by_timeline_event=event,
+        )
+        created += 1
+    return created
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+def create_timeline_comment_notification(self, comment_id: str) -> None:
+    """Create a Notification when someone comments on a timeline event."""
+    from notifications.models import Notification
+    from projects.models import TimelineComment
+
+    try:
+        comment = TimelineComment.objects.select_related(
+            "event__timeline__project", "author"
+        ).get(pk=comment_id)
+    except TimelineComment.DoesNotExist:
+        logger.error("create_timeline_comment_notification: comment %s not found", comment_id)
+        return
+
+    Notification.objects.create(
+        project=comment.event.timeline.project,
+        type=Notification.TIMELINE_COMMENT,
+        triggered_by_timeline_event=comment.event,
+        actor=comment.author,
+    )
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+def create_email_occurrence_notification(self, incoming_email_id: str) -> None:
+    """Create a high-relevance notification when the AI classifies an email as high risk."""
+    from email_organiser.models import IncomingEmail
+    from notifications.models import Notification
+
+    try:
+        incoming = IncomingEmail.objects.select_related("project").get(pk=incoming_email_id)
+    except IncomingEmail.DoesNotExist:
+        logger.error("create_email_occurrence_notification: email %s not found", incoming_email_id)
+        return
+
+    Notification.objects.create(
+        project=incoming.project,
+        type=Notification.EMAIL_HIGH_RELEVANCE,
+    )
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def check_unresolved_email_occurrences(self) -> int:
+    """Periodic task: emit notifications for emails that remain unresolved
+    past a threshold. Deduplicates so each email gets at most one unresolved
+    notification.
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from email_organiser.models import IncomingEmail
+    from notifications.models import Notification
+
+    # Emails that are relevant, unresolved, and older than 48 hours
+    threshold = timezone.now() - timedelta(hours=48)
+    stale_emails = IncomingEmail.objects.filter(
+        is_relevant=True,
+        is_resolved=False,
+        is_processed=True,
+        received_at__lte=threshold,
+    ).select_related("project")
+
+    created = 0
+    for email in stale_emails:
+        # Deduplicate: one unresolved notification per email
+        exists = Notification.objects.filter(
+            project=email.project,
+            type=Notification.EMAIL_OCCURRENCE_UNRESOLVED,
+        ).exists()
+        if exists:
+            continue
+        Notification.objects.create(
+            project=email.project,
+            type=Notification.EMAIL_OCCURRENCE_UNRESOLVED,
         )
         created += 1
     return created

@@ -14,6 +14,9 @@ class Notification(models.Model):
     CHAT_MESSAGE = "chat_message"
     NEW_EMAIL = "new_email"
     DEADLINE_UPCOMING = "deadline_upcoming"
+    TIMELINE_COMMENT = "timeline_comment"
+    EMAIL_HIGH_RELEVANCE = "email_high_relevance"
+    EMAIL_OCCURRENCE_UNRESOLVED = "email_occurrence_unresolved"
     MANAGER_ALERT = "manager_alert"
     SYSTEM = "system"
 
@@ -25,6 +28,9 @@ class Notification(models.Model):
         (CHAT_MESSAGE, "Chat Message"),
         (NEW_EMAIL, "New Email"),
         (DEADLINE_UPCOMING, "Deadline Upcoming"),
+        (TIMELINE_COMMENT, "Timeline Comment"),
+        (EMAIL_HIGH_RELEVANCE, "High-Relevance Email"),
+        (EMAIL_OCCURRENCE_UNRESOLVED, "Unresolved Occurrence"),
         (MANAGER_ALERT, "Manager Alert"),
         (SYSTEM, "System"),
     ]

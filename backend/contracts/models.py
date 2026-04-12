@@ -18,6 +18,20 @@ class Contract(models.Model):
         (EXPIRED, "Expired"),
     ]
 
+    # How the contract text was extracted — helps the UI inform users about
+    # quality and offer a manual paste fallback.
+    TEXT_SOURCE_NONE = "none"
+    TEXT_SOURCE_PYPDF = "pypdf"
+    TEXT_SOURCE_TEXTRACT = "textract"
+    TEXT_SOURCE_MANUAL = "manual"
+
+    TEXT_SOURCE_CHOICES = [
+        (TEXT_SOURCE_NONE, "None"),
+        (TEXT_SOURCE_PYPDF, "pypdf (digital PDF)"),
+        (TEXT_SOURCE_TEXTRACT, "AWS Textract (OCR)"),
+        (TEXT_SOURCE_MANUAL, "Manual (pasted by user)"),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.OneToOneField(
         "projects.Project",
@@ -27,6 +41,9 @@ class Contract(models.Model):
     title = models.CharField(max_length=255)
     file = models.FileField(upload_to="contracts/", null=True, blank=True)
     content = models.TextField(blank=True)
+    text_source = models.CharField(
+        max_length=10, choices=TEXT_SOURCE_CHOICES, default=TEXT_SOURCE_NONE
+    )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=DRAFT)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

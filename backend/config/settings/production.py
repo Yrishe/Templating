@@ -20,11 +20,10 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
 
-SIMPLE_JWT = {  # noqa: F405
-    **SIMPLE_JWT,  # noqa: F405
-    "AUTH_COOKIE_SECURE": True,
-    "AUTH_COOKIE_SAMESITE": "Strict",
-}
+# Auth now lives in per-tab sessionStorage + Authorization: Bearer, so the
+# AUTH_COOKIE_* keys were removed from base.py. No production-specific JWT
+# overrides are needed — the base config already has short access TTL,
+# 24 h refresh, rotation, and blacklist-after-rotation.
 
 # ---------------------------------------------------------------------------
 # Email (SMTP in production)

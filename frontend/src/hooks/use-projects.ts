@@ -8,6 +8,7 @@ import type {
   ProjectMembership,
   Timeline,
   TimelineEvent,
+  TimelineComment,
   Tag,
 } from '@/types'
 
@@ -261,6 +262,59 @@ export function useCreateTimelineEvent() {
       api.post<TimelineEvent>(`/api/projects/${projectId}/timeline/events/`, data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.timeline(variables.projectId) })
+    },
+  })
+}
+
+export function useUpdateTimelineEvent(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ eventId, ...data }: Partial<TimelineEvent> & { eventId: string }) =>
+      api.patch<TimelineEvent>(
+        `/api/projects/${projectId}/timeline/events/${eventId}/`,
+        data
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.timeline(projectId) })
+    },
+  })
+}
+
+export function useDeleteTimelineEvent(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (eventId: string) =>
+      api.delete(`/api/projects/${projectId}/timeline/events/${eventId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.timeline(projectId) })
+    },
+  })
+}
+
+export function useTimelineComments(projectId: string, eventId: string) {
+  return useQuery({
+    queryKey: [...projectKeys.timeline(projectId), 'comments', eventId],
+    queryFn: () =>
+      api.get<TimelineComment[]>(
+        `/api/projects/${projectId}/timeline/events/${eventId}/comments/`
+      ),
+    enabled: Boolean(projectId && eventId),
+  })
+}
+
+export function useCreateTimelineComment(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      ...data
+    }: { eventId: string; content: string; comment_type?: string }) =>
+      api.post<TimelineComment>(
+        `/api/projects/${projectId}/timeline/events/${eventId}/comments/`,
+        data
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.timeline(projectId) })
     },
   })
 }

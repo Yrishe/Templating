@@ -26,7 +26,12 @@ class ContractListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Contract.objects.select_related("project", "created_by")
+        qs = (
+            Contract.objects.select_related("project", "created_by")
+            # Explicit ordering so DRF pagination is deterministic.
+            # Newest first matches the UI.
+            .order_by("-created_at")
+        )
         # Managers see every project's contract (same oversight model as the
         # projects list). Accounts only see contracts for projects they're a
         # `ProjectMembership` on.
@@ -100,7 +105,7 @@ class ContractDetailView(generics.RetrieveUpdateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Contract.objects.select_related("project", "created_by")
+        qs = Contract.objects.select_related("project", "created_by").order_by("-created_at")
         if user.role != user.MANAGER:
             from projects.models import ProjectMembership
             member_project_ids = ProjectMembership.objects.filter(
@@ -124,13 +129,23 @@ class ContractDetailView(generics.RetrieveUpdateAPIView):
         return super().update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
+        # If the user is manually pasting contract text (no file in this
+        # request but content was changed), mark text_source as manual.
+        content_changed = "content" in serializer.validated_data
+        file_changed = "file" in serializer.validated_data
+
         contract = serializer.save()
+
+        if content_changed and not file_changed:
+            contract.text_source = Contract.TEXT_SOURCE_MANUAL
+            contract.save(update_fields=["text_source"])
+
         from notifications.tasks import create_contract_update_notification
         create_contract_update_notification.delay(
             str(contract.pk), "updated", str(self.request.user.pk)
         )
         # Re-extract text whenever the file changes
-        if contract.file:
+        if file_changed and contract.file:
             from contracts.tasks import extract_contract_text
             extract_contract_text.delay(str(contract.pk))
 

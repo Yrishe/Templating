@@ -14,10 +14,10 @@ from rest_framework.views import APIView
 from accounts.permissions import IsInvitedAccount, IsManager
 from projects.models import Project, ProjectMembership
 
-from .models import EmailOrganiser, FinalResponse, IncomingEmail, InvitedAccount
+from .models import EmailAnalysis, EmailOrganiser, IncomingEmail, InvitedAccount
 from .serializers import (
+    EmailAnalysisSerializer,
     EmailOrganiserSerializer,
-    FinalResponseSerializer,
     IncomingEmailSerializer,
     InvitedAccountSerializer,
 )
@@ -30,9 +30,6 @@ def _require_project_membership(project_id, user) -> Project:
         project = Project.objects.get(pk=project_id)
     except Project.DoesNotExist:
         raise NotFound("Project not found.")
-    # Managers have oversight across all projects — same rule as the
-    # projects list endpoint, chat views, etc. Accounts/invited users
-    # still need an explicit ProjectMembership row.
     if user.role != user.MANAGER and not ProjectMembership.objects.filter(
         project=project, user=user
     ).exists():
@@ -50,58 +47,127 @@ class EmailOrganiserDetailView(generics.RetrieveUpdateAPIView):
         return organiser
 
 
-class FinalResponseListCreateView(generics.ListCreateAPIView):
-    serializer_class = FinalResponseSerializer
+# ─── Incoming email — listing, filtering, resolve, re-analyse ─────────
+
+class IncomingEmailListView(generics.ListAPIView):
+    """List inbound emails with classification data.
+
+    Supports query params:
+    - ?category=delay,costs  (comma-separated filter)
+    - ?relevance=high,medium (comma-separated filter)
+    - ?is_resolved=false
+    - ?is_relevant=true
+    """
+
+    serializer_class = IncomingEmailSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def _get_organiser(self):
-        project = _require_project_membership(self.kwargs["project_id"], self.request.user)
-        organiser, _ = EmailOrganiser.objects.get_or_create(project=project)
-        return organiser
-
-    def get_queryset(self):
-        organiser = self._get_organiser()
-        return FinalResponse.objects.filter(email_organiser=organiser).prefetch_related("recipients")
-
-    def perform_create(self, serializer):
-        organiser = self._get_organiser()
-        serializer.save(email_organiser=organiser)
-
-
-class FinalResponseDetailView(generics.RetrieveUpdateAPIView):
-    serializer_class = FinalResponseSerializer
-    permission_classes = [permissions.IsAuthenticated, IsInvitedAccount]
-
     def get_queryset(self):
         project = _require_project_membership(self.kwargs["project_id"], self.request.user)
-        return FinalResponse.objects.filter(email_organiser__project=project).prefetch_related("recipients")
+        qs = IncomingEmail.objects.filter(project=project).select_related("analysis")
 
-    def perform_update(self, serializer):
-        # Record who edited
-        try:
-            invited = InvitedAccount.objects.get(
-                project_id=self.kwargs["project_id"], user=self.request.user
-            )
-        except InvitedAccount.DoesNotExist:
-            invited = None
-        serializer.save(edited_by=invited)
+        # Category filter
+        categories = self.request.query_params.get("category")
+        if categories:
+            qs = qs.filter(category__in=categories.split(","))
+
+        # Relevance filter
+        relevances = self.request.query_params.get("relevance")
+        if relevances:
+            qs = qs.filter(relevance__in=relevances.split(","))
+
+        # Resolved filter
+        is_resolved = self.request.query_params.get("is_resolved")
+        if is_resolved is not None:
+            qs = qs.filter(is_resolved=is_resolved.lower() == "true")
+
+        # Relevance flag filter
+        is_relevant = self.request.query_params.get("is_relevant")
+        if is_relevant is not None:
+            qs = qs.filter(is_relevant=is_relevant.lower() == "true")
+
+        return qs
 
 
-class FinalResponseSendView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsInvitedAccount]
+class IncomingEmailDetailView(generics.RetrieveAPIView):
+    """Get a single email with its full analysis."""
+
+    serializer_class = IncomingEmailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        project = _require_project_membership(self.kwargs["project_id"], self.request.user)
+        return IncomingEmail.objects.filter(project=project).select_related("analysis")
+
+
+class IncomingEmailResolveView(APIView):
+    """Mark an email occurrence as resolved."""
+
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request: Request, project_id, pk) -> Response:
         _require_project_membership(project_id, request.user)
         try:
-            fr = FinalResponse.objects.get(pk=pk, email_organiser__project_id=project_id)
-        except FinalResponse.DoesNotExist:
+            email = IncomingEmail.objects.get(pk=pk, project_id=project_id)
+        except IncomingEmail.DoesNotExist:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-        if fr.status == FinalResponse.SENT:
-            return Response({"detail": "Already sent."}, status=status.HTTP_400_BAD_REQUEST)
-        from notifications.tasks import dispatch_final_response
-        dispatch_final_response.delay(str(fr.pk))
-        return Response({"detail": "Send queued."}, status=status.HTTP_202_ACCEPTED)
 
+        email.is_resolved = True
+        email.save(update_fields=["is_resolved"])
+        return Response(IncomingEmailSerializer(email).data)
+
+
+class IncomingEmailReanalyseView(APIView):
+    """Re-run the AI classification pipeline on an email."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request: Request, project_id, pk) -> Response:
+        _require_project_membership(project_id, request.user)
+        try:
+            email = IncomingEmail.objects.get(pk=pk, project_id=project_id)
+        except IncomingEmail.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Reset processing state
+        email.is_processed = False
+        email.save(update_fields=["is_processed"])
+
+        # Delete existing analysis
+        EmailAnalysis.objects.filter(email=email).delete()
+
+        # Re-enqueue classification
+        try:
+            from email_organiser.tasks import classify_incoming_email
+            classify_incoming_email.delay(str(email.pk))
+        except Exception:
+            logger.exception("IncomingEmailReanalyseView: failed to enqueue re-analysis")
+            return Response(
+                {"detail": "Failed to queue re-analysis."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response({"detail": "Re-analysis queued."}, status=status.HTTP_202_ACCEPTED)
+
+
+class EmailAnalysisDetailView(generics.RetrieveAPIView):
+    """Get the AI analysis for a specific email."""
+
+    serializer_class = EmailAnalysisSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        _require_project_membership(self.kwargs["project_id"], self.request.user)
+        try:
+            return EmailAnalysis.objects.select_related("email").get(
+                email_id=self.kwargs["pk"],
+                email__project_id=self.kwargs["project_id"],
+            )
+        except EmailAnalysis.DoesNotExist:
+            raise NotFound("Analysis not found for this email.")
+
+
+# ─── Project invitations (unchanged) ─────────────────────────────────
 
 class ProjectInviteView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsManager]
@@ -123,89 +189,20 @@ class InvitedAccountListView(generics.ListAPIView):
         return InvitedAccount.objects.filter(project=project).select_related("user", "invited_by")
 
 
-# ─── Incoming email — listing & inbound webhook ──────────────────────────
-
-class IncomingEmailListView(generics.ListAPIView):
-    """List inbound emails routed to a project's mailbox."""
-
-    serializer_class = IncomingEmailSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        project = _require_project_membership(self.kwargs["project_id"], self.request.user)
-        return IncomingEmail.objects.filter(project=project)
-
-
-class GenerateReplyView(APIView):
-    """Generate (or regenerate) an AI-drafted reply for a specific inbound email.
-
-    Runs the existing `generate_suggested_reply` task synchronously and returns
-    the resulting `FinalResponse`. Also wired into the email organiser UI: the
-    user picks an inbound email and the reply is generated on demand.
-    """
-
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request: Request, project_id, pk) -> Response:
-        _require_project_membership(project_id, request.user)
-        try:
-            incoming = IncomingEmail.objects.get(pk=pk, project_id=project_id)
-        except IncomingEmail.DoesNotExist:
-            return Response({"detail": "Inbound email not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Run the task in-process so we can return the result synchronously.
-        from email_organiser.tasks import generate_suggested_reply
-
-        try:
-            generate_suggested_reply.run(str(incoming.id))
-        except Exception as exc:  # pragma: no cover - defensive
-            logger.exception("GenerateReplyView: failed for %s", incoming.id)
-            return Response(
-                {"detail": f"Failed to generate reply: {exc}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        # Return the most recent suggested FinalResponse for this inbound email.
-        fr = (
-            FinalResponse.objects.filter(source_incoming_email=incoming)
-            .order_by("-created_at")
-            .first()
-        )
-        if fr is None:
-            return Response(
-                {"detail": "Reply generation produced no draft."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        return Response(FinalResponseSerializer(fr).data, status=status.HTTP_200_OK)
-
+# ─── Inbound webhook ─────────────────────────────────────────────────
 
 class InboundEmailWebhookView(APIView):
-    """Webhook receiving parsed inbound emails from SES Inbound / SendGrid Inbound Parse / Postmark.
+    """Webhook receiving parsed inbound emails from SES / SendGrid / Postmark.
 
-    Authentication is a shared secret in the `X-Webhook-Secret` header — set
-    `INBOUND_EMAIL_WEBHOOK_SECRET` in the environment. For real SES Inbound,
-    swap this for SNS signature verification.
-
-    Expected JSON body (provider-agnostic):
-    ```json
-    {
-      "from": "client@example.com",
-      "from_name": "Acme Client",          // optional
-      "to": "proj-12345678@inbound.contractmgr.app",
-      "subject": "Re: Contract terms",
-      "body_plain": "Plain text body...",
-      "body_html": "<p>HTML body...</p>",  // optional
-      "message_id": "<unique-id@mail.example.com>",
-      "received_at": "2026-04-07T12:00:00Z"  // optional, defaults to now
-    }
-    ```
+    After creating the IncomingEmail, fires the AI classification pipeline
+    (classify → topic analysis → timeline generation) instead of the old
+    reply-generation task.
     """
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
     def post(self, request: Request) -> Response:
-        # ── Shared-secret auth ────────────────────────────────────────────
         expected_secret = getattr(settings, "INBOUND_EMAIL_WEBHOOK_SECRET", "") or ""
         provided_secret = request.headers.get("X-Webhook-Secret", "")
         if not expected_secret or provided_secret != expected_secret:
@@ -221,7 +218,6 @@ class InboundEmailWebhookView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ── Look up the project by its generic_email mailbox ──────────────
         try:
             project = Project.objects.get(generic_email__iexact=to_addr)
         except Project.DoesNotExist:
@@ -231,7 +227,7 @@ class InboundEmailWebhookView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # ── Idempotency: dedupe by message_id ─────────────────────────────
+        # Idempotency
         if IncomingEmail.objects.filter(message_id=message_id).exists():
             return Response({"detail": "Duplicate message_id, ignored."}, status=status.HTTP_200_OK)
 
@@ -252,21 +248,19 @@ class InboundEmailWebhookView(APIView):
             raw_payload=payload,
         )
 
-        # Notify project members of the new inbound email — best-effort so a
-        # broker outage doesn't fail the webhook.
+        # Notify project members of the new inbound email
         try:
             from notifications.tasks import create_incoming_email_notification
             create_incoming_email_notification.delay(str(incoming.id))
         except Exception:
             logger.exception("InboundEmailWebhook: failed to enqueue new-email notification")
 
-        # Fire the Claude suggestion task — best-effort (gracefully degrades
-        # if the task module / Anthropic SDK is unavailable).
+        # Fire the AI classification pipeline
         try:
-            from email_organiser.tasks import generate_suggested_reply
-            generate_suggested_reply.delay(str(incoming.id))
+            from email_organiser.tasks import classify_incoming_email
+            classify_incoming_email.delay(str(incoming.id))
         except Exception:
-            logger.exception("InboundEmailWebhook: failed to enqueue suggested reply task")
+            logger.exception("InboundEmailWebhook: failed to enqueue classification pipeline")
 
         return Response(
             IncomingEmailSerializer(incoming).data,

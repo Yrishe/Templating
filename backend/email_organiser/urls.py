@@ -3,53 +3,57 @@ from __future__ import annotations
 from django.urls import path
 
 from .views import (
+    EmailAnalysisDetailView,
     EmailOrganiserDetailView,
-    FinalResponseDetailView,
-    FinalResponseListCreateView,
-    FinalResponseSendView,
-    GenerateReplyView,
     InboundEmailWebhookView,
+    IncomingEmailDetailView,
     IncomingEmailListView,
+    IncomingEmailReanalyseView,
+    IncomingEmailResolveView,
     InvitedAccountListView,
     ProjectInviteView,
 )
 
 urlpatterns = [
+    # Incoming emails — list, detail, resolve, re-analyse
     path(
         "projects/<uuid:project_id>/incoming-emails/",
         IncomingEmailListView.as_view(),
         name="incoming-email-list",
     ),
     path(
-        "projects/<uuid:project_id>/incoming-emails/<uuid:pk>/generate-reply/",
-        GenerateReplyView.as_view(),
-        name="incoming-email-generate-reply",
+        "projects/<uuid:project_id>/incoming-emails/<uuid:pk>/",
+        IncomingEmailDetailView.as_view(),
+        name="incoming-email-detail",
     ),
+    path(
+        "projects/<uuid:project_id>/incoming-emails/<uuid:pk>/resolve/",
+        IncomingEmailResolveView.as_view(),
+        name="incoming-email-resolve",
+    ),
+    path(
+        "projects/<uuid:project_id>/incoming-emails/<uuid:pk>/reanalyse/",
+        IncomingEmailReanalyseView.as_view(),
+        name="incoming-email-reanalyse",
+    ),
+    path(
+        "projects/<uuid:project_id>/incoming-emails/<uuid:pk>/analysis/",
+        EmailAnalysisDetailView.as_view(),
+        name="email-analysis-detail",
+    ),
+    # Webhook
     path(
         "webhooks/inbound-email/",
         InboundEmailWebhookView.as_view(),
         name="inbound-email-webhook",
     ),
+    # Email organiser config
     path(
         "email-organiser/<uuid:project_id>/",
         EmailOrganiserDetailView.as_view(),
         name="email-organiser-detail",
     ),
-    path(
-        "email-organiser/<uuid:project_id>/final-responses/",
-        FinalResponseListCreateView.as_view(),
-        name="final-response-list-create",
-    ),
-    path(
-        "email-organiser/<uuid:project_id>/final-responses/<uuid:pk>/",
-        FinalResponseDetailView.as_view(),
-        name="final-response-detail",
-    ),
-    path(
-        "email-organiser/<uuid:project_id>/final-responses/<uuid:pk>/send/",
-        FinalResponseSendView.as_view(),
-        name="final-response-send",
-    ),
+    # Invitations
     path(
         "projects/<uuid:project_id>/invite/",
         ProjectInviteView.as_view(),

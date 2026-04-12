@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from accounts.serializers import UserProfileSerializer
 
-from .models import Project, ProjectMembership, Tag, Timeline, TimelineEvent
+from .models import Project, ProjectMembership, Tag, Timeline, TimelineComment, TimelineEvent
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -14,11 +14,31 @@ class TagSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
+class TimelineCommentSerializer(serializers.ModelSerializer):
+    author = UserProfileSerializer(read_only=True)
+
+    class Meta:
+        model = TimelineComment
+        fields = [
+            "id", "event", "author", "content", "comment_type",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "event", "author", "created_at", "updated_at"]
+
+
 class TimelineEventSerializer(serializers.ModelSerializer):
+    created_by = UserProfileSerializer(read_only=True)
+    comments = TimelineCommentSerializer(many=True, read_only=True)
+    comment_count = serializers.IntegerField(source="comments.count", read_only=True)
+
     class Meta:
         model = TimelineEvent
-        fields = ["id", "title", "description", "start_date", "end_date", "status", "created_at", "updated_at"]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        fields = [
+            "id", "title", "description", "start_date", "end_date",
+            "status", "priority", "created_by", "deadline_reminder_days",
+            "comments", "comment_count", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_by", "created_at", "updated_at"]
 
 
 class TimelineSerializer(serializers.ModelSerializer):

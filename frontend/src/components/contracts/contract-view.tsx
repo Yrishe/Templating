@@ -17,6 +17,9 @@ import {
   useActivateContract,
   useCreateContractRequest,
 } from '@/hooks/use-projects'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/lib/api'
+import { projectKeys } from '@/hooks/use-projects'
 import { useAuth } from '@/hooks/use-auth'
 import { formatDateTime } from '@/lib/utils'
 import type { Contract } from '@/types'
@@ -211,11 +214,21 @@ function SubmitRequestForm({ projectId }: SubmitRequestProps) {
           id="request-attachment"
           ref={attachmentRef}
           type="file"
-          onChange={(e) => setAttachment(e.target.files?.[0] ?? null)}
+          accept=".pdf"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null
+            if (file && file.size > 10 * 1024 * 1024) {
+              alert('File is too large. Maximum size is 10 MB.')
+              e.target.value = ''
+              setAttachment(null)
+              return
+            }
+            setAttachment(file)
+          }}
           className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
         />
         <p className="text-xs text-muted-foreground">
-          Attach a redlined contract or any supporting document for the manager to review.
+          PDF only, max 10 MB. Attach a redlined contract or supporting document for the manager to review.
         </p>
       </div>
       {showSuccess && (
@@ -241,6 +254,85 @@ function SubmitRequestForm({ projectId }: SubmitRequestProps) {
         {createRequest.isPending ? 'Submitting...' : 'Submit for approval'}
       </Button>
     </form>
+  )
+}
+
+// ─── Contract text extraction info + manual paste ────────────────────────────
+
+function ContractTextSection({ contract, projectId }: { contract: Contract; projectId: string }) {
+  const [showPaste, setShowPaste] = useState(false)
+  const [manualText, setManualText] = useState(contract.content)
+  const queryClient = useQueryClient()
+
+  const saveText = useMutation({
+    mutationFn: (content: string) =>
+      api.patch<Contract>(`/api/contracts/${contract.id}/`, { content }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.contract(projectId) })
+      setShowPaste(false)
+    },
+  })
+
+  const sourceLabels: Record<string, { text: string; className: string }> = {
+    pypdf: { text: 'Text extracted from digital PDF', className: 'text-green-700 bg-green-50 border-green-200' },
+    textract: { text: 'Text extracted via OCR (AWS Textract) — quality may vary', className: 'text-amber-700 bg-amber-50 border-amber-200' },
+    manual: { text: 'Text pasted manually', className: 'text-blue-700 bg-blue-50 border-blue-200' },
+    none: { text: 'No text extracted — the AI pipeline needs contract text to analyse emails', className: 'text-red-700 bg-red-50 border-red-200' },
+  }
+
+  const source = sourceLabels[contract.text_source] ?? sourceLabels.none
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className={`rounded-md border p-3 text-xs ${source.className}`}>
+        <div className="flex items-center justify-between">
+          <span>{source.text}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-[11px]"
+            onClick={() => {
+              setManualText(contract.content)
+              setShowPaste(!showPaste)
+            }}
+          >
+            {showPaste ? 'Cancel' : 'Paste text manually'}
+          </Button>
+        </div>
+      </div>
+
+      {showPaste && (
+        <div className="space-y-2">
+          <Label htmlFor="manual-content">Contract text</Label>
+          <textarea
+            id="manual-content"
+            value={manualText}
+            onChange={(e) => setManualText(e.target.value)}
+            placeholder="Paste the full contract text here..."
+            className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => saveText.mutate(manualText)}
+              disabled={saveText.isPending || !manualText.trim()}
+            >
+              {saveText.isPending ? 'Saving...' : 'Save contract text'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowPaste(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+          {saveText.isError && (
+            <p className="text-sm text-destructive">Failed to save text.</p>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -344,6 +436,11 @@ export function ContractView({ projectId }: ContractViewProps) {
               yet uploaded a contract for this project. */}
           {(isAccount || isManager) && (
             <UploadContractForm projectId={projectId} existingContract={contract} />
+          )}
+
+          {/* Text extraction source banner + manual paste fallback */}
+          {contract && (
+            <ContractTextSection contract={contract} projectId={projectId} />
           )}
         </CardContent>
       </Card>

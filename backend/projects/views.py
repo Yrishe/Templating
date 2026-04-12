@@ -8,12 +8,13 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAccount, IsManager, IsProjectMember
 
-from .models import Project, ProjectMembership, Tag, Timeline, TimelineEvent
+from .models import Project, ProjectMembership, Tag, Timeline, TimelineComment, TimelineEvent
 from .serializers import (
     ProjectDetailSerializer,
     ProjectMembershipSerializer,
     ProjectSerializer,
     TagSerializer,
+    TimelineCommentSerializer,
     TimelineEventSerializer,
     TimelineSerializer,
 )
@@ -36,7 +37,14 @@ class ProjectListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        base_qs = Project.objects.select_related("account").prefetch_related("memberships__user")
+        base_qs = (
+            Project.objects.select_related("account")
+            .prefetch_related("memberships__user")
+            # Explicit ordering — DRF's pagination warns on unordered
+            # querysets because page boundaries become non-deterministic.
+            # Newest first matches the UI's project list.
+            .order_by("-created_at")
+        )
         # Managers see all projects as a team overview
         if user.role == user.MANAGER:
             return base_qs.all()
@@ -100,6 +108,7 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
         base = (
             Project.objects.select_related("account")
             .prefetch_related("memberships__user")
+            .order_by("-created_at")
         )
         # Managers have oversight across the whole tenant — mirror the list
         # view, which already returns all projects for managers. Without
@@ -134,22 +143,114 @@ class ProjectTimelineView(generics.RetrieveAPIView):
         return timeline
 
 
+def _get_project_or_404(project_id):
+    """Shared helper — fetch a Project by PK or raise NotFound."""
+    try:
+        return Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+        raise NotFound("Project not found.")
+
+
+def _can_edit_timeline(user, project):
+    """Return True if the user may create/edit/delete timeline events.
+
+    Allowed for:
+    - Managers (oversight on all projects)
+    - The project's account owner (the subscriber who created the project)
+    """
+    if user.role == user.MANAGER:
+        return True
+    return project.account.subscriber_id == user.pk
+
+
 class TimelineEventCreateView(generics.CreateAPIView):
     serializer_class = TimelineEventSerializer
-    permission_classes = [permissions.IsAuthenticated, IsManager]
+    permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        project_id = self.kwargs["project_id"]
-        try:
-            project = Project.objects.get(pk=project_id)
-        except Project.DoesNotExist:
-            raise NotFound("Project not found.")
-        # IsManager permission already filters to managers only; since
-        # managers are implicit members of every project the old
-        # ProjectMembership existence check would reject them for projects
-        # they didn't personally join.
+        project = _get_project_or_404(self.kwargs["project_id"])
+        if not _can_edit_timeline(self.request.user, project):
+            raise PermissionDenied("Only the project owner or a manager can add timeline events.")
         timeline, _ = Timeline.objects.get_or_create(project=project)
-        serializer.save(timeline=timeline)
+        serializer.save(timeline=timeline, created_by=self.request.user)
+
+
+class TimelineEventDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """GET / PATCH / DELETE a single timeline event.
+
+    Only the project owner or a manager may update or delete.
+    Any project member may read.
+    """
+
+    serializer_class = TimelineEventSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = "event_id"
+
+    def get_queryset(self):
+        return TimelineEvent.objects.filter(
+            timeline__project_id=self.kwargs["project_id"]
+        ).select_related("timeline__project__account", "created_by").prefetch_related(
+            "comments__author"
+        )
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            # Any project member can read — membership checked below
+            user = request.user
+            project = obj.timeline.project
+            if user.role != user.MANAGER and not ProjectMembership.objects.filter(
+                project=project, user=user
+            ).exists():
+                raise PermissionDenied("You are not a member of this project.")
+        else:
+            if not _can_edit_timeline(request.user, obj.timeline.project):
+                raise PermissionDenied("Only the project owner or a manager can modify timeline events.")
+
+
+class TimelineCommentListCreateView(generics.ListCreateAPIView):
+    """List and create comments on a timeline event.
+
+    Any project member can read and create comments.
+    """
+
+    serializer_class = TimelineCommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_event(self):
+        try:
+            return TimelineEvent.objects.select_related("timeline__project").get(
+                pk=self.kwargs["event_id"],
+                timeline__project_id=self.kwargs["project_id"],
+            )
+        except TimelineEvent.DoesNotExist:
+            raise NotFound("Timeline event not found.")
+
+    def get_queryset(self):
+        event = self._get_event()
+        user = self.request.user
+        project = event.timeline.project
+        if user.role != user.MANAGER and not ProjectMembership.objects.filter(
+            project=project, user=user
+        ).exists():
+            raise PermissionDenied("You are not a member of this project.")
+        return TimelineComment.objects.filter(event=event).select_related("author")
+
+    def perform_create(self, serializer):
+        event = self._get_event()
+        user = self.request.user
+        project = event.timeline.project
+        if user.role != user.MANAGER and not ProjectMembership.objects.filter(
+            project=project, user=user
+        ).exists():
+            raise PermissionDenied("You are not a member of this project.")
+        comment = serializer.save(event=event, author=user)
+        # Fire notification asynchronously
+        try:
+            from notifications.tasks import create_timeline_comment_notification
+            create_timeline_comment_notification.delay(str(comment.pk))
+        except Exception:
+            pass
 
 
 class ProjectMembershipListView(generics.ListAPIView):
@@ -160,7 +261,7 @@ class ProjectMembershipListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = ProjectMembership.objects.select_related("user")
+        qs = ProjectMembership.objects.select_related("user").order_by("joined_at")
         # Managers see every project's membership (oversight model).
         # Non-managers only see memberships for projects they belong to.
         if user.role != user.MANAGER:

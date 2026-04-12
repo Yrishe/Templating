@@ -33,6 +33,9 @@ const PROJECT_FOCUSED_TYPES: Notification['type'][] = [
   'chat_message',
   'new_email',
   'deadline_upcoming',
+  'timeline_comment',
+  'email_high_relevance',
+  'email_occurrence_unresolved',
 ]
 
 function NotificationIcon({ type }: { type: Notification['type'] }) {
@@ -51,6 +54,12 @@ function NotificationIcon({ type }: { type: Notification['type'] }) {
       return <Mail className="h-4 w-4 text-orange-500" />
     case 'deadline_upcoming':
       return <Clock className="h-4 w-4 text-amber-500" />
+    case 'timeline_comment':
+      return <MessageSquare className="h-4 w-4 text-indigo-500" />
+    case 'email_high_relevance':
+      return <AlertCircle className="h-4 w-4 text-red-500" />
+    case 'email_occurrence_unresolved':
+      return <Clock className="h-4 w-4 text-red-500" />
     case 'manager_alert':
       return <AlertCircle className="h-4 w-4 text-yellow-500" />
     case 'system':
@@ -74,7 +83,11 @@ function hrefForNotification(notification: Notification): string {
     case 'new_email':
       return ROUTES.EMAIL_ORGANISER(notification.project)
     case 'deadline_upcoming':
+    case 'timeline_comment':
       return ROUTES.PROJECT_TIMELINE(notification.project)
+    case 'email_high_relevance':
+    case 'email_occurrence_unresolved':
+      return ROUTES.EMAIL_ORGANISER(notification.project)
     case 'manager_alert':
     case 'system':
     default:
@@ -93,6 +106,9 @@ function NotificationItem({ notification }: { notification: Notification }) {
     chat_message: 'New Message',
     new_email: 'New Email',
     deadline_upcoming: 'Deadline Upcoming',
+    timeline_comment: 'Timeline Comment',
+    email_high_relevance: 'High-Relevance Email',
+    email_occurrence_unresolved: 'Unresolved Occurrence',
     manager_alert: 'Manager Alert',
     system: 'System',
   }
