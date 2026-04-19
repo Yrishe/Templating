@@ -4,6 +4,16 @@ Long-horizon design work that isn't scheduled yet. Each item lists motivation, s
 
 ---
 
+## Next session — pick one
+
+1. **Phase 1 — AI-suggestion thumbs** (~3 days). Smallest implementation slice from the research program; delivers a labelled eval dataset for the email organiser. Scope detail in the `[research]` entry below.
+2. **Security #5 — JWT + CSP hardening.** Parked during the security pass because it touches auth end-to-end. Move refresh tokens to `HttpOnly; SameSite=Strict` cookies, keep access tokens in memory, flip CSP from Report-Only to enforcing. See [docs/security.md](security.md#5).
+3. **Open decisions** (unblocks #1 before it hits production scale, and unblocks the `[support]` plan entirely):
+   - Chatwoot vs Plain vs Intercom.
+   - n8n self-host (in compose) vs n8n Cloud.
+
+---
+
 ## [research] User feedback program (Plan A + Plan C)
 
 **Status:** adopted 2026-04-19 — detail in [docs/research.md](research.md).
