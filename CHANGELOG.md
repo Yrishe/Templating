@@ -9,7 +9,7 @@ All notable changes to this project will be documented here. Format loosely foll
 Tracking items from [docs/security.md](docs/security.md). Status: **planned** — none implemented yet. Move each bullet under **Security fixes** once landed and link the commit.
 
 #### Critical
-- [ ] **#1 Webhook timing-safe comparison** — replace `!=` with `hmac.compare_digest` in [backend/email_organiser/views.py:208](backend/email_organiser/views.py#L208); fail startup if `INBOUND_EMAIL_WEBHOOK_SECRET` is empty.
+- [x] **#1 Webhook timing-safe comparison** — replaced `!=` with `hmac.compare_digest` in [backend/email_organiser/views.py](backend/email_organiser/views.py); unconfigured `INBOUND_EMAIL_WEBHOOK_SECRET` now returns `503` and logs an error instead of silently 401'ing.
 
 #### High
 - [ ] **#2 Drop `DB_PASSWORD`/`DB_USER`/`DB_NAME`/`DB_HOST` defaults** — [backend/config/settings/base.py:90-98](backend/config/settings/base.py#L90-L98); introduce `_require_env()` helper; raise `ImproperlyConfigured` when missing.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 import logging
 
 from django.conf import settings
@@ -205,7 +206,10 @@ class InboundEmailWebhookView(APIView):
     def post(self, request: Request) -> Response:
         expected_secret = getattr(settings, "INBOUND_EMAIL_WEBHOOK_SECRET", "") or ""
         provided_secret = request.headers.get("X-Webhook-Secret", "")
-        if not expected_secret or provided_secret != expected_secret:
+        if not expected_secret:
+            logger.error("InboundEmailWebhook: INBOUND_EMAIL_WEBHOOK_SECRET is not configured")
+            return Response({"detail": "Webhook not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        if not hmac.compare_digest(provided_secret, expected_secret):
             return Response({"detail": "Invalid webhook secret."}, status=status.HTTP_401_UNAUTHORIZED)
 
         payload = request.data or {}
