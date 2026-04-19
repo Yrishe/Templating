@@ -4,6 +4,20 @@ Long-horizon design work that isn't scheduled yet. Each item lists motivation, s
 
 ---
 
+## [research] User feedback program (Plan A + Plan C)
+
+**Status:** adopted 2026-04-19 — detail in [docs/research.md](research.md).
+
+Combines always-on in-app capture (AI-suggestion thumbs + floating feedback widget) with a structured research program (quarterly NPS, interview opt-in pipeline). Phased over 5 implementation slices; Phase 1 (AI thumbs) is the smallest and delivers a labelled evaluation dataset for the email organiser.
+
+## [support] Customer support surface + event bus
+
+**Status:** adopted 2026-04-19 — detail in [docs/support.md](support.md).
+
+Chatwoot (self-hosted, default recommendation) as the single conversation system of record; n8n as the event bus that fans feedback/support events out to Slack, Notion, Linear, and PagerDuty. Tool choice flagged for decision before first production rollout.
+
+---
+
 ## Per-project manager scoping (tightening oversight)
 
 **Status:** deferred — captured from security review finding #8 ([docs/security.md](security.md)).

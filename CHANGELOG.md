@@ -30,6 +30,9 @@ Tracking items from [docs/security.md](docs/security.md). Status: **planned** �
 - [x] **#13 Frontend file-size check comment** — [frontend/src/components/contracts/contract-view.tsx](frontend/src/components/contracts/contract-view.tsx) annotated so future readers don't mistake the client-side size gate for a security control.
 
 ### Added
+- [docs/research.md](docs/research.md) — adopted user-feedback program combining in-app capture (AI thumbs + floating widget) with a structured research layer (quarterly NPS, interview opt-in). Data models, endpoints, privacy/retention, and 5-phase implementation slice defined.
+- [docs/support.md](docs/support.md) — customer-support surface and event-bus plan. Chatwoot (self-hosted) as system of record; n8n as the fan-out bus for feedback/support events. SLA table, webhook-security pattern, and 5-phase rollout defined.
+- [docs/plan.md](docs/plan.md) index updated with `[research]` and `[support]` pointer entries so the two adopted programs are discoverable from the central plan file.
 - [docs/security.md](docs/security.md) — full security review of the current codebase (13 findings across critical/high/medium/low).
 - [docs/frontend.md](docs/frontend.md), [docs/backend.md](docs/backend.md), [docs/email_organiser.md](docs/email_organiser.md) — per-area feature documentation templates.
 - [REQUIREMENTS.md](REQUIREMENTS.md) — project requirements (functional, non-functional, security, compliance).
