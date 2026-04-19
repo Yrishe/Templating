@@ -217,6 +217,7 @@ function SubmitRequestForm({ projectId }: SubmitRequestProps) {
           accept=".pdf"
           onChange={(e) => {
             const file = e.target.files?.[0] ?? null
+            // UX hint only — the backend serializer is the source of truth for size limits.
             if (file && file.size > 10 * 1024 * 1024) {
               alert('File is too large. Maximum size is 10 MB.')
               e.target.value = ''

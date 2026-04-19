@@ -27,7 +27,7 @@ Tracking items from [docs/security.md](docs/security.md). Status: **planned** �
 
 #### Low
 - [x] **#12 Clean `.env.example` webhook placeholder** — [.env.example](.env.example) value blanked, added `openssl rand -hex 32` generation hint so a copy-paste deploy can't end up with the old documentation string.
-- [ ] **#13 Frontend file-size check comment** — [frontend/src/components/contracts/contract-view.tsx:220](frontend/src/components/contracts/contract-view.tsx#L220); annotate as UX hint only.
+- [x] **#13 Frontend file-size check comment** — [frontend/src/components/contracts/contract-view.tsx](frontend/src/components/contracts/contract-view.tsx) annotated so future readers don't mistake the client-side size gate for a security control.
 
 ### Added
 - [docs/security.md](docs/security.md) — full security review of the current codebase (13 findings across critical/high/medium/low).
