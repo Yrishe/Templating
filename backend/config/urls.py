@@ -22,4 +22,10 @@ urlpatterns = [
     path("api/", include("chat.urls")),
     path("api/", include("email_organiser.urls")),
     path("api/", include("dashboard.urls")),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+# Finding #4: never expose MEDIA_ROOT via public static() in production.
+# Uploaded files are served by authenticated endpoints
+# (ContractDownloadView / ContractRequestAttachmentView).
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

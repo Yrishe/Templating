@@ -61,12 +61,15 @@ class ContractSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "file_url", "created_by", "created_at", "updated_at", "activated_at"]
 
     def get_file_url(self, obj: Contract) -> str | None:
+        # Route downloads through the authenticated ContractDownloadView
+        # (finding #4) — the raw /media/ URL is no longer exposed in prod.
         if not obj.file:
             return None
         request = self.context.get("request")
+        path = f"/api/contracts/{obj.pk}/download/"
         if request:
-            return request.build_absolute_uri(obj.file.url)
-        return obj.file.url
+            return request.build_absolute_uri(path)
+        return path
 
     def validate_file(self, value):
         return _validate_pdf_upload(value, "Contract file")
@@ -97,12 +100,15 @@ class ContractRequestSerializer(serializers.ModelSerializer):
         ]
 
     def get_attachment_url(self, obj: ContractRequest) -> str | None:
+        # Route downloads through the authenticated
+        # ContractRequestAttachmentView (finding #4).
         if not obj.attachment:
             return None
         request = self.context.get("request")
+        path = f"/api/contract-requests/{obj.pk}/attachment/"
         if request:
-            return request.build_absolute_uri(obj.attachment.url)
-        return obj.attachment.url
+            return request.build_absolute_uri(path)
+        return path
 
     def validate_attachment(self, value):
         return _validate_pdf_upload(value, "Attachment")

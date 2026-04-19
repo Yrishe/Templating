@@ -18,7 +18,7 @@ import {
   useCreateContractRequest,
 } from '@/hooks/use-projects'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { api, downloadAuthed } from '@/lib/api'
 import { projectKeys } from '@/hooks/use-projects'
 import { useAuth } from '@/hooks/use-auth'
 import { formatDateTime } from '@/lib/utils'
@@ -423,12 +423,16 @@ export function ContractView({ projectId }: ContractViewProps) {
                 <FileText className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-sm truncate">Contract PDF</span>
               </div>
-              <a href={contract.file_url} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline">
-                  <Download className="h-3.5 w-3.5 mr-1.5" />
-                  Download / View
-                </Button>
-              </a>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (contract.file_url) downloadAuthed(contract.file_url, 'contract.pdf')
+                }}
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Download
+              </Button>
             </div>
           )}
 

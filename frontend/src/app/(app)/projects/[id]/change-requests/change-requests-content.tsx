@@ -23,6 +23,7 @@ import {
   useProject,
 } from '@/hooks/use-projects'
 import { useAuth } from '@/hooks/use-auth'
+import { downloadAuthed } from '@/lib/api'
 import { formatDateTime } from '@/lib/utils'
 import type { ContractRequest, ContractRequestStatus } from '@/types'
 
@@ -51,15 +52,14 @@ function StatusBadge({ status }: { status: ContractRequestStatus }) {
 
 function AttachmentLink({ url }: { url: string }) {
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+    <button
+      type="button"
+      onClick={() => downloadAuthed(url, 'attachment.pdf')}
+      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline cursor-pointer"
     >
       <FileText className="h-3.5 w-3.5" />
-      View attached file
-    </a>
+      Download attached file
+    </button>
   )
 }
 

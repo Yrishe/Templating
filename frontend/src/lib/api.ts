@@ -143,3 +143,32 @@ export const api = {
     request<T>(path, { method: 'PATCH', body }),
   delete: (path: string) => request(path, { method: 'DELETE' }),
 }
+
+// Authenticated binary download. `url` may be absolute (returned by
+// DRF's `request.build_absolute_uri`) or a relative API path. The browser
+// can't attach the Bearer token to an `<a href>` click, so we fetch the
+// blob ourselves and trigger the download from an object URL.
+export async function downloadAuthed(url: string, filenameFallback = 'download'): Promise<void> {
+  const resolved = url.startsWith('http') ? url : `${API_BASE}${url}`
+  const doFetch = () => fetch(resolved, buildFetchOptions({ method: 'GET' }))
+  let res = await doFetch()
+  if (res.status === 401 && (await tryRefreshToken())) {
+    res = await doFetch()
+  }
+  if (!res.ok) {
+    throw new Error(`Download failed: HTTP ${res.status}`)
+  }
+  const blob = await res.blob()
+  const filename =
+    res.headers
+      .get('content-disposition')
+      ?.match(/filename="?([^"]+)"?/i)?.[1] ?? filenameFallback
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(objectUrl)
+}

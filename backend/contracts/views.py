@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.http import FileResponse, Http404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
@@ -11,6 +12,15 @@ from accounts.permissions import IsManager
 
 from .models import Contract, ContractRequest
 from .serializers import ContractRequestSerializer, ContractSerializer
+
+
+def _user_can_read_project(user, project_id) -> bool:
+    """Managers have global oversight; others must be `ProjectMembership` rows."""
+    if user.role == user.MANAGER:
+        return True
+    from projects.models import ProjectMembership
+
+    return ProjectMembership.objects.filter(project_id=project_id, user=user).exists()
 
 
 class ContractListCreateView(generics.ListCreateAPIView):
@@ -316,3 +326,37 @@ class ContractRequestRejectView(APIView):
             str(cr.pk), "rejected", str(request.user.pk)
         )
         return Response(ContractRequestSerializer(cr, context={"request": request}).data)
+
+
+class ContractDownloadView(APIView):
+    """Authenticated streaming download for Contract.file (finding #4)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request: Request, pk) -> FileResponse:
+        try:
+            contract = Contract.objects.select_related("project").get(pk=pk)
+        except Contract.DoesNotExist:
+            raise Http404
+        if not _user_can_read_project(request.user, contract.project_id):
+            raise Http404
+        if not contract.file:
+            raise Http404
+        return FileResponse(contract.file.open("rb"), as_attachment=True, filename=contract.file.name.split("/")[-1])
+
+
+class ContractRequestAttachmentView(APIView):
+    """Authenticated streaming download for ContractRequest.attachment (finding #4)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request: Request, pk) -> FileResponse:
+        try:
+            cr = ContractRequest.objects.select_related("project").get(pk=pk)
+        except ContractRequest.DoesNotExist:
+            raise Http404
+        if not _user_can_read_project(request.user, cr.project_id):
+            raise Http404
+        if not cr.attachment:
+            raise Http404
+        return FileResponse(cr.attachment.open("rb"), as_attachment=True, filename=cr.attachment.name.split("/")[-1])
