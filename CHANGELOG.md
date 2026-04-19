@@ -20,7 +20,7 @@ Tracking items from [docs/security.md](docs/security.md). Status: **planned** �
 #### Medium
 - [x] **#6 `ALLOWED_HOSTS` parsing** — filter empty entries from the split in [backend/config/settings/base.py](backend/config/settings/base.py); [backend/config/settings/production.py](backend/config/settings/production.py) now raises `ImproperlyConfigured` when the resulting list is empty.
 - [x] **#7 Structural PDF validation** — [backend/contracts/serializers.py](backend/contracts/serializers.py) now parses uploads through `pypdf.PdfReader` after the magic-byte check, rejecting polyglots that fake a `%PDF-` prefix.
-- [ ] **#8 `ContractActivateView` membership check** — [backend/contracts/views.py:165](backend/contracts/views.py#L165); call `_require_project_membership` before activation.
+- [x] **#8 `ContractActivateView` membership check** — **accepted-risk**. Managers have global oversight across every contract view (`ContractListCreateView`, `ContractDetailView`, approve/reject), so scoping only activation would be inconsistent. Captured as a future design change in [docs/plan.md](docs/plan.md); tightens naturally when multi-company/multi-tenant support lands.
 - [ ] **#9 Redis bind to `127.0.0.1`** — [docker-compose.yml:24](docker-compose.yml#L24); `"6379:6379"` → `"127.0.0.1:6379:6379"`.
 - [ ] **#10 Postgres bind to `127.0.0.1`** — [docker-compose.yml:10](docker-compose.yml#L10); `"5434:5432"` → `"127.0.0.1:5434:5432"`.
 - [ ] **#11 Inbound webhook throttle + payload cap** — [backend/email_organiser/views.py:211](backend/email_organiser/views.py#L211); add `ScopedRateThrottle` (scope `"inbound_email"`, 60/min); drop `raw_payload` fields > 256 KB or replace with hash + size.
