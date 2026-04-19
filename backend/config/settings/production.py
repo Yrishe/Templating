@@ -3,8 +3,12 @@ from __future__ import annotations
 import os
 
 from .base import *  # noqa: F401, F403
+from .base import _require_env  # noqa: F401
 
 DEBUG = False
+
+# Refuse to start with the dev SECRET_KEY placeholder or an empty env var.
+SECRET_KEY = _require_env("DJANGO_SECRET_KEY")
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
 

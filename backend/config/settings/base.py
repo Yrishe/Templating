@@ -18,6 +18,8 @@ def _require_env(name: str) -> str:
         )
     return value
 
+# Development fallback only. `production.py` overrides this and requires
+# DJANGO_SECRET_KEY to be set in the environment (see #3 in docs/security.md).
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-placeholder-key-change-in-production")
 
 DEBUG = False
