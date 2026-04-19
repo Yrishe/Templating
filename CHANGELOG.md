@@ -12,7 +12,7 @@ Tracking items from [docs/security.md](docs/security.md). Status: **planned** �
 - [x] **#1 Webhook timing-safe comparison** — replaced `!=` with `hmac.compare_digest` in [backend/email_organiser/views.py](backend/email_organiser/views.py); unconfigured `INBOUND_EMAIL_WEBHOOK_SECRET` now returns `503` and logs an error instead of silently 401'ing.
 
 #### High
-- [ ] **#2 Drop `DB_PASSWORD`/`DB_USER`/`DB_NAME`/`DB_HOST` defaults** — [backend/config/settings/base.py:90-98](backend/config/settings/base.py#L90-L98); introduce `_require_env()` helper; raise `ImproperlyConfigured` when missing.
+- [x] **#2 Drop `DB_PASSWORD`/`DB_USER`/`DB_NAME`/`DB_HOST` defaults** — added `_require_env()` helper in [backend/config/settings/base.py](backend/config/settings/base.py); missing DB env vars now raise `ImproperlyConfigured` at import time.
 - [ ] **#3 `SECRET_KEY` fail-fast in production** — remove insecure default from [backend/config/settings/base.py:9](backend/config/settings/base.py#L9); keep a dev-only default in `development.py`; `production.py` raises if the env var is absent.
 - [ ] **#4 Access-controlled media serving** — drop `static(MEDIA_URL, ...)` in [backend/config/urls.py:25](backend/config/urls.py#L25); add `SecureDownloadView` that checks project membership before streaming contracts/attachments; update frontend URLs.
 - [ ] **#5 JWT storage + CSP hardening** — refresh token in `HttpOnly; Secure; SameSite=Strict` cookie, access token in memory only ([frontend/src/lib/api.ts:26-41](frontend/src/lib/api.ts#L26-L41), [frontend/src/context/auth-context.tsx:51](frontend/src/context/auth-context.tsx#L51)); flip CSP from `Report-Only` to enforcing; drop `unsafe-inline` for scripts.

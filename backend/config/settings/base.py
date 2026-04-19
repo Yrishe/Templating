@@ -4,7 +4,19 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+def _require_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ImproperlyConfigured(
+            f"Environment variable {name!r} is required but not set. "
+            f"Set it in your environment or .env file."
+        )
+    return value
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-placeholder-key-change-in-production")
 
@@ -90,10 +102,10 @@ ASGI_APPLICATION = "config.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "management_db"),
-        "USER": os.environ.get("DB_USER", "postgres"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "postgres"),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
+        "NAME": _require_env("DB_NAME"),
+        "USER": _require_env("DB_USER"),
+        "PASSWORD": _require_env("DB_PASSWORD"),
+        "HOST": _require_env("DB_HOST"),
         "PORT": os.environ.get("DB_PORT", "5432"),
     }
 }
