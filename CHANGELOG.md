@@ -26,7 +26,7 @@ Tracking items from [docs/security.md](docs/security.md). Status: **planned** �
 - [x] **#11 Inbound webhook throttle + payload cap** — [backend/email_organiser/views.py](backend/email_organiser/views.py) now uses `ScopedRateThrottle` (scope `"inbound_email"`, 60/min; rate registered in [base.py](backend/config/settings/base.py)) and replaces `raw_payload` with `{size, sha256, _truncated}` metadata when the serialized JSON exceeds 256 KB.
 
 #### Low
-- [ ] **#12 Clean `.env.example` webhook placeholder** — [.env.example:42](.env.example#L42); blank the value, add `# openssl rand -hex 32` hint.
+- [x] **#12 Clean `.env.example` webhook placeholder** — [.env.example](.env.example) value blanked, added `openssl rand -hex 32` generation hint so a copy-paste deploy can't end up with the old documentation string.
 - [ ] **#13 Frontend file-size check comment** — [frontend/src/components/contracts/contract-view.tsx:220](frontend/src/components/contracts/contract-view.tsx#L220); annotate as UX hint only.
 
 ### Added
