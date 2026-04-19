@@ -21,7 +21,9 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # Dev-only binding. Production should drop this mapping entirely
+      # and keep Redis inside the docker network.
+      - "127.0.0.1:6379:6379"
 
   backend:
     build:
