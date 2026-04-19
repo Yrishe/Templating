@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -90,7 +90,7 @@ services:
     restart: unless-stopped
     # Override the Dockerfile CMD; `deps` doesn't set one and we want the
     # Next dev server with HMR against the mounted host source.
-    command: sh -c "npm install --silent && npm run dev"
+    command: sh -c "npm install --legacy-peer-deps --silent && npm run dev"
     env_file:
       - .env
     ports:
