@@ -24,7 +24,11 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-placeholder-ke
 
 DEBUG = False
 
-ALLOWED_HOSTS: list[str] = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS: list[str] = [
+    host.strip()
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
 
 # ---------------------------------------------------------------------------
 # Application definition

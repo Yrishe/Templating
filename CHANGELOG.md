@@ -18,7 +18,7 @@ Tracking items from [docs/security.md](docs/security.md). Status: **planned** �
 - [ ] **#5 JWT storage + CSP hardening** — refresh token in `HttpOnly; Secure; SameSite=Strict` cookie, access token in memory only ([frontend/src/lib/api.ts:26-41](frontend/src/lib/api.ts#L26-L41), [frontend/src/context/auth-context.tsx:51](frontend/src/context/auth-context.tsx#L51)); flip CSP from `Report-Only` to enforcing; drop `unsafe-inline` for scripts.
 
 #### Medium
-- [ ] **#6 `ALLOWED_HOSTS` parsing** — [backend/config/settings/base.py:13](backend/config/settings/base.py#L13); filter empty entries after `split`; require non-empty list in `production.py`.
+- [x] **#6 `ALLOWED_HOSTS` parsing** — filter empty entries from the split in [backend/config/settings/base.py](backend/config/settings/base.py); [backend/config/settings/production.py](backend/config/settings/production.py) now raises `ImproperlyConfigured` when the resulting list is empty.
 - [ ] **#7 Structural PDF validation** — [backend/contracts/serializers.py:38-48](backend/contracts/serializers.py#L38-L48); parse via `pypdf.PdfReader`; enforce max size in the serializer.
 - [ ] **#8 `ContractActivateView` membership check** — [backend/contracts/views.py:165](backend/contracts/views.py#L165); call `_require_project_membership` before activation.
 - [ ] **#9 Redis bind to `127.0.0.1`** — [docker-compose.yml:24](docker-compose.yml#L24); `"6379:6379"` → `"127.0.0.1:6379:6379"`.

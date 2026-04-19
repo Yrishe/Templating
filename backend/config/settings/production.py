@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *  # noqa: F401, F403
 from .base import _require_env  # noqa: F401
 
@@ -10,7 +12,16 @@ DEBUG = False
 # Refuse to start with the dev SECRET_KEY placeholder or an empty env var.
 SECRET_KEY = _require_env("DJANGO_SECRET_KEY")
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
+if not ALLOWED_HOSTS:
+    raise ImproperlyConfigured(
+        "DJANGO_ALLOWED_HOSTS must be set to a non-empty, comma-separated "
+        "list of hostnames in production."
+    )
 
 # ---------------------------------------------------------------------------
 # Security hardening
