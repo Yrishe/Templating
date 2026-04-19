@@ -19,7 +19,7 @@ Tracking items from [docs/security.md](docs/security.md). Status: **planned** �
 
 #### Medium
 - [x] **#6 `ALLOWED_HOSTS` parsing** — filter empty entries from the split in [backend/config/settings/base.py](backend/config/settings/base.py); [backend/config/settings/production.py](backend/config/settings/production.py) now raises `ImproperlyConfigured` when the resulting list is empty.
-- [ ] **#7 Structural PDF validation** — [backend/contracts/serializers.py:38-48](backend/contracts/serializers.py#L38-L48); parse via `pypdf.PdfReader`; enforce max size in the serializer.
+- [x] **#7 Structural PDF validation** — [backend/contracts/serializers.py](backend/contracts/serializers.py) now parses uploads through `pypdf.PdfReader` after the magic-byte check, rejecting polyglots that fake a `%PDF-` prefix.
 - [ ] **#8 `ContractActivateView` membership check** — [backend/contracts/views.py:165](backend/contracts/views.py#L165); call `_require_project_membership` before activation.
 - [ ] **#9 Redis bind to `127.0.0.1`** — [docker-compose.yml:24](docker-compose.yml#L24); `"6379:6379"` → `"127.0.0.1:6379:6379"`.
 - [ ] **#10 Postgres bind to `127.0.0.1`** — [docker-compose.yml:10](docker-compose.yml#L10); `"5434:5432"` → `"127.0.0.1:5434:5432"`.

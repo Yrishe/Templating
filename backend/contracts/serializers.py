@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from rest_framework import serializers
 
 from .models import Contract, ContractRequest
@@ -46,6 +48,18 @@ def _validate_pdf_upload(file_obj, field_label: str):
         raise serializers.ValidationError(
             f"{field_label} must be a PDF document (magic bytes did not match)."
         )
+    # Structural parse — rejects polyglot files (ZIP/HTML with a %PDF- prefix)
+    # that sneak past the magic-byte check.
+    try:
+        PdfReader(file_obj, strict=False)
+    except (PdfReadError, Exception) as exc:  # noqa: BLE001 — pypdf raises many types
+        raise serializers.ValidationError(
+            f"{field_label} is not a valid PDF: {exc}"
+        ) from exc
+    try:
+        file_obj.seek(0)
+    except Exception:
+        pass
     return file_obj
 
 
