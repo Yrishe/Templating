@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
+import json
 import logging
 
 from django.conf import settings
@@ -10,7 +12,10 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+
+MAX_RAW_PAYLOAD_BYTES = 256 * 1024  # 256 KB — see finding #11 in docs/security.md.
 
 from accounts.permissions import IsInvitedAccount, IsManager
 from projects.models import Project, ProjectMembership
@@ -202,6 +207,8 @@ class InboundEmailWebhookView(APIView):
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "inbound_email"
 
     def post(self, request: Request) -> Response:
         expected_secret = getattr(settings, "INBOUND_EMAIL_WEBHOOK_SECRET", "") or ""
@@ -240,6 +247,22 @@ class InboundEmailWebhookView(APIView):
         if received_at is None:
             received_at = timezone.now()
 
+        # Cap the stored raw payload so a flood of large webhook calls can't
+        # inflate DB storage. Parsed fields (subject, body, etc.) are kept
+        # verbatim; only the JSONField copy is truncated.
+        try:
+            serialized = json.dumps(payload, default=str)
+        except (TypeError, ValueError):
+            serialized = ""
+        if len(serialized) > MAX_RAW_PAYLOAD_BYTES:
+            raw_payload_to_store: dict = {
+                "_truncated": True,
+                "size": len(serialized),
+                "sha256": hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+            }
+        else:
+            raw_payload_to_store = payload
+
         incoming = IncomingEmail.objects.create(
             project=project,
             sender_email=(payload.get("from") or "").strip(),
@@ -249,7 +272,7 @@ class InboundEmailWebhookView(APIView):
             body_html=payload.get("body_html") or "",
             message_id=message_id,
             received_at=received_at,
-            raw_payload=payload,
+            raw_payload=raw_payload_to_store,
         )
 
         # Notify project members of the new inbound email

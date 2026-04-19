@@ -174,6 +174,9 @@ REST_FRAMEWORK = {
         "user": "2000/day",
         "auth": "10/minute",
         "auth_refresh": "30/minute",
+        # Inbound email webhook — see email_organiser/views.py and
+        # finding #11 in docs/security.md.
+        "inbound_email": "60/minute",
     },
 }
 
