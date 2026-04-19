@@ -22,10 +22,9 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      # Dev-only binding. Production should drop this mapping entirely
-      # and keep Redis inside the docker network.
-      - "127.0.0.1:6379:6379"
+    # No host-port mapping — backend/celery reach redis via the docker
+    # network (`redis:6379`). For local debugging use
+    # `docker compose exec redis redis-cli`.
 
   backend:
     build:
