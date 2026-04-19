@@ -7,8 +7,9 @@ Long-horizon design work that isn't scheduled yet. Each item lists motivation, s
 ## [research] User feedback program (Plan A + Plan C)
 
 **Status:** adopted 2026-04-19 — detail in [docs/research.md](research.md).
+**Next up:** Phase 1 — AI-suggestion thumbs (~3 days). New `feedback` Django app, `AISuggestionFeedback` model, `POST /api/feedback/ai/`, `<AiFeedback>` React component on classification and suggestion outputs. No consent UI needed for this slice (low-PII). Ship behind feature flag `feature.ai_thumbs`.
 
-Combines always-on in-app capture (AI-suggestion thumbs + floating feedback widget) with a structured research program (quarterly NPS, interview opt-in pipeline). Phased over 5 implementation slices; Phase 1 (AI thumbs) is the smallest and delivers a labelled evaluation dataset for the email organiser.
+Combines always-on in-app capture (AI-suggestion thumbs + floating feedback widget) with a structured research program (quarterly NPS, interview opt-in pipeline). Phased over 5 implementation slices; Phase 1 is the smallest and delivers a labelled evaluation dataset for the email organiser.
 
 ## [support] Customer support surface + event bus
 

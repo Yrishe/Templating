@@ -4,6 +4,11 @@ All notable changes to this project will be documented here. Format loosely foll
 
 ## [Unreleased]
 
+### Next up
+
+- **Phase 1 of the research program** (~3 days) — AI-suggestion thumbs. See [docs/research.md](docs/research.md#a1-ai-suggestion-thumbs) and the `[research]` entry in [docs/plan.md](docs/plan.md). Delivers a labelled eval dataset for the email organiser.
+- **Security #5** (parked) — JWT/refresh-cookie migration + CSP enforcement. Scheduled after the feedback program lands.
+
 ### Security fixes (planned)
 
 Tracking items from [docs/security.md](docs/security.md). Status: **planned** — none implemented yet. Move each bullet under **Security fixes** once landed and link the commit.
