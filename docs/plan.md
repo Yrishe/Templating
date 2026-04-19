@@ -27,6 +27,12 @@ Combines always-on in-app capture (AI-suggestion thumbs + floating feedback widg
 
 Chatwoot (self-hosted, default recommendation) as the single conversation system of record; n8n as the event bus that fans feedback/support events out to Slack, Notion, Linear, and PagerDuty. Tool choice flagged for decision before first production rollout.
 
+## [infra] Hosting + email provider choice
+
+**Status:** alternatives documented 2026-04-19 — detail in [docs/hosting_plans.md](hosting_plans.md).
+
+Three coherent combos laid out (Fly.io + Postmark for minimal ops; Scaleway + Brevo for EU residency; Hetzner + Postmark for cheapest-at-scale). Decision owed before first production deploy; default recommendation is the Fly.io combo.
+
 ---
 
 ## Per-project manager scoping (tightening oversight)
