@@ -144,14 +144,36 @@ def invited_client(invited_user: User) -> APIClient:
 # ─── File-upload fixtures ──────────────────────────────────────────────────
 
 
-def _pdf_bytes(body: bytes = b"hello world") -> bytes:
-    """Minimal valid-looking PDF for the magic-byte check.
+def _pdf_bytes(_body: bytes = b"hello world") -> bytes:
+    """Minimal *structurally-valid* PDF.
 
-    The validator in contracts/serializers.py only checks that the upload
-    starts with `%PDF-`. A full pypdf round-trip isn't needed for the
-    upload-path tests; only `test_extract_contract_text` would.
+    The validator in contracts/serializers.py does a full pypdf round-trip
+    (it was hardened to reject polyglot files — ZIP/HTML with a `%PDF-`
+    prefix — so magic-byte alone isn't enough). The previous fixture
+    produced bytes that passed the magic-byte check but failed
+    `PdfReader(..., strict=False)` with "startxref not found", which
+    silently broke every upload-path test.
+
+    This blob is the smallest thing pypdf will parse: a catalog, an empty
+    pages tree, a trailer, and an xref table. The `_body` arg is ignored —
+    embedding arbitrary bytes in the middle breaks the byte-offset
+    pointers in the xref table, and upload-path tests don't care about
+    page content.
     """
-    return b"%PDF-1.4\n" + body + b"\n%%EOF\n"
+    return (
+        b"%PDF-1.4\n"
+        b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
+        b"2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\n"
+        b"xref\n"
+        b"0 3\n"
+        b"0000000000 65535 f \n"
+        b"0000000009 00000 n \n"
+        b"0000000055 00000 n \n"
+        b"trailer\n<< /Size 3 /Root 1 0 R >>\n"
+        b"startxref\n"
+        b"104\n"
+        b"%%EOF\n"
+    )
 
 
 @pytest.fixture

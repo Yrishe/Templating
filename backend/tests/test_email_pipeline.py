@@ -389,7 +389,10 @@ class TestInboundEmailWebhook:
 
     def test_valid_webhook_creates_email_and_enqueues_pipeline(self, api_client, project):
         with self.settings(INBOUND_EMAIL_WEBHOOK_SECRET="test-secret"):
-            with patch("email_organiser.views.classify_incoming_email") as mock_classify:
+            # Patch at the task's source module — the view imports it
+            # lazily inside the handler, so the name never exists on the
+            # `views` module namespace to be patched there.
+            with patch("email_organiser.tasks.classify_incoming_email") as mock_classify:
                 mock_classify.delay = MagicMock()
                 with patch("notifications.tasks.create_incoming_email_notification") as mock_notif:
                     mock_notif.delay = MagicMock()
@@ -438,7 +441,7 @@ class TestInboundEmailWebhook:
     def test_pipeline_enqueue_failure_still_returns_201(self, api_client, project):
         """Graceful degradation: pipeline failure shouldn't fail the webhook."""
         with self.settings(INBOUND_EMAIL_WEBHOOK_SECRET="test-secret"):
-            with patch("email_organiser.views.classify_incoming_email") as mock_classify:
+            with patch("email_organiser.tasks.classify_incoming_email") as mock_classify:
                 mock_classify.delay.side_effect = Exception("Broker down")
                 with patch("notifications.tasks.create_incoming_email_notification") as mock_notif:
                     mock_notif.delay = MagicMock()
@@ -493,7 +496,7 @@ class TestEmailEndpoints:
             email=email, agent_topic="delay", risk_level="medium"
         )
 
-        with patch("email_organiser.views.classify_incoming_email") as mock_classify:
+        with patch("email_organiser.tasks.classify_incoming_email") as mock_classify:
             mock_classify.delay = MagicMock()
 
             resp = manager_client.post(
