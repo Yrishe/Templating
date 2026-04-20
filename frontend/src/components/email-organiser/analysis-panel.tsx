@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useResolveEmail, useReanalyseEmail } from '@/hooks/use-email-organiser'
 import { CategoryBadge, RelevanceBadge } from './email-organiser-panel'
+import { AiFeedback } from '@/components/feedback/ai-feedback'
 import type { IncomingEmail } from '@/types'
 
 function RiskBadge({ level }: { level: string }) {
@@ -184,11 +185,16 @@ export function AnalysisPanel({ projectId, email }: AnalysisPanelProps) {
               content={analysis.mitigation}
             />
 
-            <AnalysisSection
-              icon={<Lightbulb className="h-4 w-4 text-yellow-500" />}
-              title="Suggested Response"
-              content={analysis.suggested_response}
-            />
+            {analysis.suggested_response && (
+              <div className="space-y-2">
+                <AnalysisSection
+                  icon={<Lightbulb className="h-4 w-4 text-yellow-500" />}
+                  title="Suggested Response"
+                  content={analysis.suggested_response}
+                />
+                <AiFeedback targetType="suggestion" targetId={analysis.id} />
+              </div>
+            )}
 
             <AnalysisSection
               icon={<Route className="h-4 w-4 text-purple-500" />}

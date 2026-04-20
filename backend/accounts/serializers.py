@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
@@ -48,10 +49,23 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    # Feature flags exposed to the frontend via /api/auth/me/. Tiny
+    # env-driven gates (see config/settings/base.py FEATURE_*) that let the
+    # UI dark-launch a feature and be pulled without a redeploy.
+    features = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "email", "role", "first_name", "last_name", "date_joined", "last_login"]
-        read_only_fields = ["id", "date_joined", "last_login"]
+        fields = [
+            "id", "email", "role", "first_name", "last_name",
+            "date_joined", "last_login", "features",
+        ]
+        read_only_fields = ["id", "date_joined", "last_login", "features"]
+
+    def get_features(self, _obj: User) -> dict[str, bool]:
+        return {
+            "ai_thumbs": bool(getattr(settings, "FEATURE_AI_THUMBS", False)),
+        }
 
 
 class AccountSerializer(serializers.ModelSerializer):

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatRelativeTime } from '@/lib/utils'
 import { useIncomingEmails } from '@/hooks/use-email-organiser'
+import { AiFeedback } from '@/components/feedback/ai-feedback'
 import type { IncomingEmail, EmailCategory, EmailRelevance } from '@/types'
 
 // ─── Category & relevance config ─────────────────────────────────────
@@ -132,8 +133,14 @@ function EmailItemRow({
         )}
       </button>
       {expanded && (
-        <div className="border-t bg-muted/20 p-3">
+        <div className="border-t bg-muted/20 p-3 space-y-3">
           <p className="text-sm whitespace-pre-wrap">{email.body_plain}</p>
+          <div className="flex items-start justify-between gap-3">
+            <span className="text-[11px] text-muted-foreground">
+              How did the AI classify this one?
+            </span>
+            <AiFeedback targetType="classification" targetId={email.id} />
+          </div>
         </div>
       )}
     </div>

@@ -64,6 +64,7 @@ LOCAL_APPS = [
     "chat.apps.ChatConfig",
     "email_organiser.apps.EmailOrganiserConfig",
     "dashboard.apps.DashboardConfig",
+    "feedback.apps.FeedbackConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -177,6 +178,9 @@ REST_FRAMEWORK = {
         # Inbound email webhook — see email_organiser/views.py and
         # finding #11 in docs/security.md.
         "inbound_email": "60/minute",
+        # AI thumbs / feedback — multiple classifications and suggestions
+        # may be rated in one screen, so a looser limit than app feedback.
+        "ai_feedback": "30/minute",
     },
 }
 
@@ -270,6 +274,13 @@ INBOUND_EMAIL_WEBHOOK_SECRET = os.environ.get("INBOUND_EMAIL_WEBHOOK_SECRET", ""
 # and creates a placeholder draft instead of calling the API.
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+
+# Feature flags — tiny env-driven gates so a feature can be dark-launched
+# and pulled without a redeploy. Exposed to the frontend via
+# /api/auth/me/ → UserProfileSerializer.features.
+FEATURE_AI_THUMBS = os.environ.get("FEATURE_AI_THUMBS", "false").lower() in (
+    "1", "true", "yes", "on",
+)
 
 # AWS Textract — used for OCR fallback on scanned contract PDFs. If region
 # is unset, the Textract fallback is skipped and pypdf-only extraction runs.

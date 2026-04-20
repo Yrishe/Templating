@@ -1,5 +1,9 @@
 export type UserRole = 'manager' | 'account' | 'invited_account'
 
+export interface FeatureFlags {
+  ai_thumbs: boolean
+}
+
 export interface User {
   id: string
   email: string
@@ -7,6 +11,23 @@ export interface User {
   last_name: string
   role: UserRole
   is_active: boolean
+  features?: FeatureFlags
+}
+
+export type AiFeedbackTargetType = 'classification' | 'suggestion' | 'timeline_event'
+
+export interface AiSuggestionFeedback {
+  id: string
+  user: string
+  project: string
+  target_type: AiFeedbackTargetType
+  target_id: string
+  rating: 1 | -1
+  reason: string
+  model: string
+  provider: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Account {

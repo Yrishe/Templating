@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/", include("chat.urls")),
     path("api/", include("email_organiser.urls")),
     path("api/", include("dashboard.urls")),
+    path("api/", include("feedback.urls")),
 ]
 
 # Finding #4: never expose MEDIA_ROOT via public static() in production.
