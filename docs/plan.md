@@ -6,9 +6,9 @@ Long-horizon design work that isn't scheduled yet. Each item lists motivation, s
 
 ## Next session — pick one
 
-1. **Phase 1 — AI-suggestion thumbs** (~3 days). Smallest implementation slice from the research program; delivers a labelled eval dataset for the email organiser. Scope detail in the `[research]` entry below.
-2. **Security #5 — JWT + CSP hardening.** Parked during the security pass because it touches auth end-to-end. Move refresh tokens to `HttpOnly; SameSite=Strict` cookies, keep access tokens in memory, flip CSP from Report-Only to enforcing. See [docs/security.md](security.md#5).
-3. **Open decisions** (unblocks #1 before it hits production scale, and unblocks the `[support]` plan entirely):
+1. ~~**Phase 1 — AI-suggestion thumbs**~~ **Landed 2026-04-20** (commit `1c99cc8`). Delivered `POST /api/feedback/ai/`, `<AiFeedback>` widget on email classifications + suggested replies, `FEATURE_AI_THUMBS` flag exposed via `/api/auth/me/`. 13 feedback tests + 116 suite green. Also fixed 7 unrelated pre-existing test failures while the env was warm (commit `9e09848`). Next research phase (A.2 app-wide widget) is still queued per [research.md](research.md).
+2. **Security #5 — HttpOnly refresh cookie + in-memory access token.** Planned 2026-04-20 with the user; implementation deferred. Scope is narrower than the original bullet said: CSP is already prod-enforced, so the work is purely the token-storage refactor. Multi-tab different-users support is being dropped as part of the fix. **Step-by-step plan + locked-in decisions in [docs/security_5_plan.md](security_5_plan.md).** Next session can pick this up cold.
+3. **Open decisions** (unblocks the `[support]` plan entirely; also relevant to Phase 2 of research):
    - Chatwoot vs Plain vs Intercom.
    - n8n self-host (in compose) vs n8n Cloud.
 
@@ -17,7 +17,8 @@ Long-horizon design work that isn't scheduled yet. Each item lists motivation, s
 ## [research] User feedback program (Plan A + Plan C)
 
 **Status:** adopted 2026-04-19 — detail in [docs/research.md](research.md).
-**Next up:** Phase 1 — AI-suggestion thumbs (~3 days). New `feedback` Django app, `AISuggestionFeedback` model, `POST /api/feedback/ai/`, `<AiFeedback>` React component on classification and suggestion outputs. No consent UI needed for this slice (low-PII). Ship behind feature flag `feature.ai_thumbs`.
+**Phase 1 landed 2026-04-20** (commits `1c99cc8`, `9e09848`).
+**Next up:** Phase 2 — app-wide feedback widget (A.2). `AppFeedback` model + floating button + triage view in Django admin + n8n webhook. Blocked on the support-tool decision (Chatwoot vs Plain vs Intercom) — see open decisions above.
 
 Combines always-on in-app capture (AI-suggestion thumbs + floating feedback widget) with a structured research program (quarterly NPS, interview opt-in pipeline). Phased over 5 implementation slices; Phase 1 is the smallest and delivers a labelled evaluation dataset for the email organiser.
 
@@ -78,4 +79,4 @@ Per-manager scoping is the precondition for hosting multiple customer companies 
 
 ---
 
-_Last updated: 2026-04-19._
+_Last updated: 2026-04-20._
