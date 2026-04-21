@@ -33,10 +33,9 @@ Findings are grouped by severity. Each item lists the file, line, a description 
 - **Risk:** Contract PDFs and attachments are served via Django's `static()` helper. Any authenticated (or even unauthenticated, depending on URL config) user who guesses a path can download another account's files — classic IDOR via filesystem.
 - **Fix:** Serve uploads through an authenticated view that checks ownership/project membership, or issue short-lived signed URLs (e.g. S3 presigned).
 
-### 5. JWTs stored in `sessionStorage`, no CSP enforced
-- **Files:** [frontend/src/lib/api.ts:26-41](../frontend/src/lib/api.ts#L26-L41), [frontend/src/context/auth-context.tsx:51](../frontend/src/context/auth-context.tsx#L51)
-- **Risk:** Access + refresh tokens live in `sessionStorage`, which is readable by any script on the origin. Combined with `Content-Security-Policy` being in `Report-Only` mode, any XSS immediately exfiltrates both tokens.
-- **Fix:** Move to `HttpOnly` + `SameSite=Strict` cookies for refresh tokens, keep access tokens in memory only, and switch CSP from `Report-Only` to enforcing (remove `unsafe-inline` / `unsafe-eval` where possible).
+### 5. JWTs stored in `sessionStorage`, no CSP enforced — **Fixed 2026-04-21**
+- **Files:** [backend/accounts/views.py](../backend/accounts/views.py), [frontend/src/lib/api.ts](../frontend/src/lib/api.ts), [frontend/src/context/auth-context.tsx](../frontend/src/context/auth-context.tsx)
+- **Fix landed:** refresh token moved to an `HttpOnly; Secure; SameSite=Strict` cookie scoped to `/api/auth/`; access token held in memory only (React module ref). CSP was re-checked and found already enforced in production with `script-src 'self'` (no `unsafe-inline`, no `unsafe-eval`) — the "flip from Report-Only" wording in the original finding was stale. Multi-tab different-users support was explicitly dropped as part of the change (users fall back to Chrome profiles / incognito).
 
 ---
 

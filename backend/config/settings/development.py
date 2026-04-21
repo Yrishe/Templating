@@ -40,8 +40,11 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 SIMPLE_JWT = {  # noqa: F405
     **SIMPLE_JWT,  # noqa: F405
-    "AUTH_COOKIE_SECURE": False,
 }
+
+# Local dev runs over plain HTTP, so the refresh cookie can't set `Secure`
+# (the browser would refuse to send it back). Production keeps the default.
+REFRESH_COOKIE_SECURE = False
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",

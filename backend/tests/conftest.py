@@ -106,9 +106,11 @@ def project(db, account: Account, manager_user: User, subscriber_user: User) -> 
 
 # ─── API client fixtures ───────────────────────────────────────────────────
 #
-# Auth moved to per-tab sessionStorage + Authorization: Bearer. The test
-# clients below force-authenticate using SimpleJWT so we exercise the same
-# code path as the real app without round-tripping through login.
+# Access tokens arrive as `Authorization: Bearer`. The test clients below
+# force-authenticate using SimpleJWT so we exercise the same code path
+# as the real app without round-tripping through login. (The refresh
+# cookie isn't needed in these helpers — those flows are covered directly
+# in tests/test_auth.py.)
 
 
 @pytest.fixture

@@ -11,7 +11,7 @@ Multi-role contract and project management platform. Accounts create projects an
 | Real-time | Django Channels 4 + Redis (WebSockets) |
 | Async tasks | Celery 5 + Redis |
 | Database | PostgreSQL 16 |
-| Auth | SimpleJWT with per-tab `sessionStorage` + `Authorization: Bearer` |
+| Auth | SimpleJWT — access token in memory + refresh token in HttpOnly cookie |
 | AI (email organiser) | Anthropic Claude (narrowed knowledge per-contract RAG) |
 | Hosting target | AWS ECS Fargate / Google Cloud Run |
 
@@ -26,7 +26,7 @@ Multi-role contract and project management platform. Accounts create projects an
 - **Projects** — each has an auto-generated inbound email, a single Contract (OneToOne), a real-time Chat, a Timeline, and an Email Organiser.
 - **Change requests** — Accounts can raise unlimited change requests against a contract, each with an optional PDF attachment. Managers approve or reject with a justification comment. Approval auto-activates a draft contract. Full history lives on a dedicated `Change Requests` tab.
 - **Notifications** — per-project feed with 9 types (`contract_request`, `contract_request_approved/_rejected`, `contract_update`, `chat_message`, `new_email`, `deadline_upcoming`, `manager_alert`, `system`). Actor-suppressed (nobody sees their own actions), per-user dismissible, click-through deep-linked.
-- **Multi-tab sessions** — auth tokens live in per-tab `sessionStorage`, so two users can work side-by-side in the same browser (e.g. `Manager` in tab A, `Account` in tab B). Cookies are per-origin; `sessionStorage` is per-tab.
+- **Secure auth storage** — the refresh token rides in an `HttpOnly; Secure; SameSite=Strict` cookie scoped to `/api/auth/`; the access token lives in a React module-ref (in-memory only). XSS can't read the refresh; the worst an attacker can do is a 15-minute access window. Concurrent different-user sessions require separate browser profiles.
 - **Dark mode** — light / dark / system theme selector in Settings, driven by a `ThemeProvider` + `.dark` class on `<html>`.
 - **AI-assisted replies** — inbound email ingestion (SES / SendGrid) fires a Celery task that asks Claude for a suggested reply using the project's contract as narrowed knowledge.
 
@@ -93,7 +93,7 @@ See **`docs/TESTING.md`** for test layout, what each file covers, and what's sti
 - **[`docs/N8N_INTEGRATION.md`](docs/N8N_INTEGRATION.md)** — how to plug n8n in for customer support / automation, and the security risks of doing so.
 - **[`docs/INBOUND_EMAIL_SETUP.md`](docs/INBOUND_EMAIL_SETUP.md)** — SES / SendGrid inbound webhook configuration.
 - **`PLANS.md`** — work items queued but not yet landed (file type/size limits ✅ done, CSP hardening, SES+SNS signature verification, deadline beat schedule, etc.).
-- **`Diagram.drawio`** — 8-page architecture / flow diagram (ER view, system diagram, user journey, Phase 2 + 3, change request lifecycle, notification system, multi-tab auth).
+- **`Diagram.drawio`** — 8-page architecture / flow diagram (ER view, system diagram, user journey, Phase 2 + 3, change request lifecycle, notification system, auth flow).
 
 ## Conventions
 

@@ -66,6 +66,42 @@ class TestProjectVisibility:
         resp = api_client.get(f"/api/projects/{project.id}/")
         assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
+    def test_project_invite_endpoint_creates_projectmembership(
+        self, manager_client: APIClient, project: Project, invited_user: User
+    ):
+        """Regression for the 404s the user saw clicking into project tabs
+        after being invited: the legacy `/api/projects/<id>/invite/` path
+        created only an `InvitedAccount` row, which every permission check
+        ignores. Result was an empty project list + 404 on detail for
+        invited-account users. The view now creates a matching
+        `ProjectMembership` so the invited user can actually see and use
+        the project they were invited to.
+        """
+        resp = manager_client.post(
+            f"/api/projects/{project.id}/invite/",
+            {"user": str(invited_user.id)},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert ProjectMembership.objects.filter(
+            project=project, user=invited_user
+        ).exists()
+
+        # The invited user can now see the project via the list endpoint and
+        # hit the detail view without tripping the 404.
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from rest_framework.test import APIClient as _Client
+        client = _Client()
+        client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(invited_user).access_token}"
+        )
+        list_resp = client.get("/api/projects/")
+        assert list_resp.status_code == status.HTTP_200_OK
+        assert str(project.id) in [p["id"] for p in list_resp.json()["results"]]
+
+        detail_resp = client.get(f"/api/projects/{project.id}/")
+        assert detail_resp.status_code == status.HTTP_200_OK
+
 
 # ─── Contract list visibility ─────────────────────────────────────────────
 

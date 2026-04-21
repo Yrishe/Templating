@@ -191,9 +191,9 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     # Shortened from 7 days → 24 hours to reduce the blast radius of a
-    # stolen refresh token. With per-tab sessionStorage + 24 h TTL +
-    # rotation + blacklist-after-rotation, the worst case for an
-    # exfiltrated token is a 24 h window rather than a week.
+    # stolen refresh token. With the HttpOnly refresh cookie + in-memory
+    # access + 24 h TTL + rotation + blacklist-after-rotation, the worst
+    # case for an exfiltrated access token is a 15-min window.
     "REFRESH_TOKEN_LIFETIME": timedelta(hours=24),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -203,6 +203,17 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
+
+# Refresh-token cookie (finding #5). HttpOnly keeps XSS from reading it,
+# SameSite=Strict blocks cross-site CSRF, Path scoping means the cookie
+# is only attached to /api/auth/ requests so the rest of the API surface
+# never sees it. Max-Age matches SIMPLE_JWT.REFRESH_TOKEN_LIFETIME so the
+# browser drops it at the same time the server stops honouring it.
+REFRESH_COOKIE_NAME = "refresh_token"
+REFRESH_COOKIE_PATH = "/api/auth/"
+REFRESH_COOKIE_SAMESITE = "Strict"
+REFRESH_COOKIE_MAX_AGE = int(SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
+REFRESH_COOKIE_SECURE = True  # production default; dev override flips to False
 
 # ---------------------------------------------------------------------------
 # CORS

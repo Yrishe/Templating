@@ -287,7 +287,6 @@ export interface SignupData {
 export interface AuthResponse {
   user: User
   access: string
-  refresh: string
 }
 
 export interface Chat {

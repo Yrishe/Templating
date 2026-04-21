@@ -3,11 +3,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 /**
  * Content-Security-Policy + complementary security headers.
  *
- * Why this exists: auth tokens moved to per-tab `sessionStorage` so an XSS
- * vulnerability anywhere in the frontend (or in a poisoned dependency)
- * could exfiltrate them. CSP is the load-bearing mitigation — it keeps an
- * attacker from landing the script in the first place. See
- * `docs/SECURITY.md` §1 and `PLANS.md §5` for the full rationale.
+ * Why this exists: the access token lives in a JS module-ref (in-memory
+ * only) and the refresh token rides in an HttpOnly cookie (finding #5).
+ * XSS can't read the refresh cookie, but it can still read the access
+ * token from the heap in the same tab — CSP is the load-bearing mitigation
+ * that keeps an attacker from landing the script in the first place. See
+ * `docs/security.md` #5 for the full rationale.
  *
  * Scope of the policy (production):
  *   - `script-src 'self'` — no inline scripts, no eval, no remote scripts.

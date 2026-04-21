@@ -35,10 +35,12 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
 
-# Auth now lives in per-tab sessionStorage + Authorization: Bearer, so the
-# AUTH_COOKIE_* keys were removed from base.py. No production-specific JWT
-# overrides are needed — the base config already has short access TTL,
-# 24 h refresh, rotation, and blacklist-after-rotation.
+# Refresh token rides in the HttpOnly cookie defined in base.py; the
+# access token lives in memory on the client. `REFRESH_COOKIE_SECURE`
+# defaults to True in base.py so production inherits it automatically.
+# No production-specific JWT overrides are needed — the base config
+# already has short access TTL, 24 h refresh, rotation, and
+# blacklist-after-rotation.
 
 # ---------------------------------------------------------------------------
 # Email (SMTP in production)

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { WS_BASE_URL } from '@/lib/constants'
-import { tokenStorage } from '@/lib/api'
+import { accessTokenStore } from '@/lib/api'
 import type { Message } from '@/types'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -31,11 +31,11 @@ export function useChat({ projectId, chatId, onMessage }: UseChatOptions): UseCh
   const connect = useCallback(() => {
     if (!projectId || !chatId) return
 
-    // Auth moved from httpOnly cookies to per-tab sessionStorage, so we
-    // can't rely on the browser to send credentials on the WS upgrade.
-    // Forward the access token as a query-string param — the ChatConsumer
-    // parses it on connect and verifies via SimpleJWT.
-    const token = tokenStorage.getAccess()
+    // The access token lives in memory only; forward it as a query-string
+    // param so the ChatConsumer can parse it on connect and verify via
+    // SimpleJWT. The refresh cookie isn't useful here — the WS upgrade
+    // doesn't round-trip to /api/auth/ to mint a new access.
+    const token = accessTokenStore.get()
     if (!token) {
       setStatus('disconnected')
       return

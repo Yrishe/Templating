@@ -17,9 +17,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.project_id: str = self.scope["url_route"]["kwargs"]["project_id"]
         self.room_group_name = f"chat_{self.project_id}"
 
-        # Auth: per-tab sessionStorage means we can't use cookies on the WS
-        # upgrade. The frontend passes the access token as `?token=...` on
-        # the WS URL — parse it, verify via SimpleJWT, and load the user.
+        # Auth: the access token lives in memory on the client and the
+        # refresh cookie is scoped to /api/auth/, so neither reaches the
+        # WS upgrade automatically. The frontend forwards the access token
+        # as `?token=...` — parse it, verify via SimpleJWT, load the user.
         user = await self._authenticate_from_query_string()
         if user is None:
             await self.close(code=4001)

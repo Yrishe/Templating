@@ -1,6 +1,6 @@
 # Security #5 plan — HttpOnly refresh cookie + in-memory access token
 
-**Status:** planned 2026-04-20. Implementation deferred to the next session. No code changes yet — this file exists so the next session can pick up cold.
+**Status:** **Landed 2026-04-21.** All decisions below shipped as written. Test file renamed from `TestNoCookies` → `TestRefreshCookieGuardrails` (functionally equivalent: refresh-in-body is still rejected, only now the guardrail asserts the cookie exists *and* the body has no `refresh` key). Kept as a record of what was chosen and why.
 
 ## Context
 

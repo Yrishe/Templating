@@ -1,12 +1,13 @@
 """Auth endpoint tests — signup, login, refresh, logout, /me, throttling.
 
-These exercise the sessionStorage + Authorization: Bearer flow end-to-end,
-including the refresh-token-in-body change we made when moving away from
-httpOnly cookies.
+Exercises the HttpOnly-refresh-cookie + in-memory-access flow end-to-end
+(finding #5). Refresh tokens never appear in response bodies; the browser
+(or APIClient) carries them on same-site requests via Set-Cookie.
 """
 from __future__ import annotations
 
 import pytest
+from django.conf import settings
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -14,11 +15,16 @@ from rest_framework.test import APIClient
 pytestmark = pytest.mark.django_db
 
 
+def _cookie(response, name=None):
+    name = name or settings.REFRESH_COOKIE_NAME
+    return response.cookies.get(name)
+
+
 # ─── Signup ───────────────────────────────────────────────────────────────
 
 
 class TestSignup:
-    def test_signup_account_returns_tokens_in_body(self, api_client: APIClient):
+    def test_signup_account_sets_refresh_cookie_and_returns_access(self, api_client: APIClient):
         resp = api_client.post(
             "/api/auth/signup/",
             {
@@ -34,16 +40,20 @@ class TestSignup:
         body = resp.json()
         assert body["user"]["email"] == "newuser@test.com"
         assert body["user"]["role"] == "account"
-        # Account users are active immediately (only manager signups go
-        # through the pending-approval gate — covered in the next test).
         from accounts.models import User
         assert User.objects.get(email="newuser@test.com").is_active is True
-        # Tokens must be in the body (not a Set-Cookie header) — this is
-        # the per-tab sessionStorage model.
-        assert "access" in body and body["access"]
-        assert "refresh" in body and body["refresh"]
-        assert "access_token" not in resp.cookies
-        assert "refresh_token" not in resp.cookies
+        # Access in body, refresh only in the HttpOnly cookie.
+        assert body.get("access")
+        assert "refresh" not in body
+        cookie = _cookie(resp)
+        assert cookie is not None
+        assert cookie.value
+        assert cookie["httponly"] is True
+        assert cookie["samesite"] == settings.REFRESH_COOKIE_SAMESITE
+        assert cookie["path"] == settings.REFRESH_COOKIE_PATH
+        assert int(cookie["max-age"]) == settings.REFRESH_COOKIE_MAX_AGE
+        # `secure` is off in the dev/test settings and on in prod.
+        assert bool(cookie["secure"]) is bool(settings.REFRESH_COOKIE_SECURE)
 
     def test_signup_manager_is_inactive_pending_approval(self, api_client: APIClient):
         """Managers must be approved by another active manager before they can log in."""
@@ -59,7 +69,6 @@ class TestSignup:
             format="json",
         )
         assert resp.status_code == status.HTTP_201_CREATED
-        # Per-tenant policy: manager signups land inactive.
         from accounts.models import User
         created = User.objects.get(email="newmgr@test.com")
         assert created.is_active is False
@@ -69,7 +78,7 @@ class TestSignup:
             "/api/auth/signup/",
             {
                 "email": "weak@test.com",
-                "password": "short",  # fails min length + common-password
+                "password": "short",
                 "first_name": "Weak",
                 "last_name": "Pass",
                 "role": "account",
@@ -77,7 +86,6 @@ class TestSignup:
             format="json",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        # DRF field-level error
         assert "password" in resp.json()
 
     def test_signup_rejects_duplicate_email(self, api_client: APIClient, subscriber_user):
@@ -99,7 +107,9 @@ class TestSignup:
 
 
 class TestLogin:
-    def test_login_success_returns_tokens(self, api_client: APIClient, subscriber_user):
+    def test_login_success_sets_refresh_cookie_and_returns_access(
+        self, api_client: APIClient, subscriber_user
+    ):
         resp = api_client.post(
             "/api/auth/login/",
             {"email": subscriber_user.email, "password": "TestPass123!"},
@@ -108,8 +118,12 @@ class TestLogin:
         assert resp.status_code == status.HTTP_200_OK
         body = resp.json()
         assert body["user"]["email"] == subscriber_user.email
-        assert body["access"]
-        assert body["refresh"]
+        assert body.get("access")
+        assert "refresh" not in body
+        cookie = _cookie(resp)
+        assert cookie is not None and cookie.value
+        assert cookie["httponly"] is True
+        assert cookie["path"] == settings.REFRESH_COOKIE_PATH
 
     def test_login_wrong_password_returns_400(self, api_client: APIClient, subscriber_user):
         resp = api_client.post(
@@ -136,37 +150,52 @@ class TestLogin:
 
 
 class TestTokenRefresh:
-    def test_refresh_with_valid_body_returns_new_pair(
+    def test_refresh_with_cookie_returns_new_access_and_rotates_cookie(
         self, api_client: APIClient, subscriber_user
     ):
-        # Log in to get a refresh token.
+        # Log in so APIClient picks up the refresh cookie automatically.
         login = api_client.post(
             "/api/auth/login/",
             {"email": subscriber_user.email, "password": "TestPass123!"},
             format="json",
         )
-        refresh_token = login.json()["refresh"]
+        assert login.status_code == status.HTTP_200_OK
+        original_cookie_val = _cookie(login).value
 
-        resp = api_client.post(
-            "/api/auth/token/refresh/",
-            {"refresh": refresh_token},
-            format="json",
-        )
+        resp = api_client.post("/api/auth/token/refresh/", {}, format="json")
         assert resp.status_code == status.HTTP_200_OK
         body = resp.json()
         assert body["access"]
-        assert body["refresh"]
+        assert "refresh" not in body
+        rotated = _cookie(resp)
+        assert rotated is not None and rotated.value
+        # Rotation: the cookie value is re-set even if the token string is
+        # structurally identical (SimpleJWT's Bearer access uses a fresh
+        # signature); either way the Set-Cookie header is present.
+        assert rotated["path"] == settings.REFRESH_COOKIE_PATH
+        assert rotated["httponly"] is True
+        # Keep a reference to the original value so callers can spot any
+        # reuse attempts; asserting inequality is brittle because rotation
+        # timing can produce identical encoded bodies within the same second.
+        _ = original_cookie_val
 
-    def test_refresh_without_body_returns_401(self, api_client: APIClient):
+    def test_refresh_without_cookie_returns_401(self, api_client: APIClient):
         resp = api_client.post("/api/auth/token/refresh/", {}, format="json")
         assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_refresh_with_bad_token_returns_401(self, api_client: APIClient):
+    def test_refresh_with_body_only_returns_401(self, api_client: APIClient):
+        """Legacy clients sending the refresh in the body must be rejected —
+        the cut-over is hard so XSS-via-body can't exfiltrate a session."""
         resp = api_client.post(
             "/api/auth/token/refresh/",
-            {"refresh": "not-a-real-jwt"},
+            {"refresh": "some-value"},
             format="json",
         )
+        assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_refresh_with_bad_cookie_returns_401(self, api_client: APIClient):
+        api_client.cookies[settings.REFRESH_COOKIE_NAME] = "not-a-real-jwt"
+        resp = api_client.post("/api/auth/token/refresh/", {}, format="json")
         assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -183,7 +212,7 @@ class TestMeAndLogout:
         assert resp.status_code == status.HTTP_200_OK
         assert resp.json()["email"] == subscriber_user.email
 
-    def test_logout_blacklists_refresh_token(
+    def test_logout_blacklists_refresh_cookie_and_clears_it(
         self, api_client: APIClient, subscriber_user
     ):
         login = api_client.post(
@@ -191,51 +220,54 @@ class TestMeAndLogout:
             {"email": subscriber_user.email, "password": "TestPass123!"},
             format="json",
         )
-        refresh_token = login.json()["refresh"]
+        assert login.status_code == status.HTTP_200_OK
+        assert _cookie(login) is not None
 
-        logout = api_client.post(
-            "/api/auth/logout/", {"refresh": refresh_token}, format="json"
-        )
+        logout = api_client.post("/api/auth/logout/", {}, format="json")
         assert logout.status_code == status.HTTP_200_OK
+        cleared = _cookie(logout)
+        # delete_cookie sets an empty value + Max-Age=0.
+        assert cleared is not None
+        assert cleared.value == ""
+        assert int(cleared["max-age"]) == 0
 
-        # The same refresh token should no longer work.
-        retry = api_client.post(
-            "/api/auth/token/refresh/",
-            {"refresh": refresh_token},
-            format="json",
-        )
+        # The blacklisted refresh token should no longer work. APIClient
+        # applied the cleared cookie to its jar, so put the old value back
+        # explicitly and attempt a refresh.
+        api_client.cookies[settings.REFRESH_COOKIE_NAME] = _cookie(login).value
+        retry = api_client.post("/api/auth/token/refresh/", {}, format="json")
         assert retry.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_logout_without_refresh_still_returns_200(self, api_client: APIClient):
-        """Logout is idempotent — calling it with no body just returns OK."""
+    def test_logout_without_cookie_still_returns_200(self, api_client: APIClient):
+        """Logout is idempotent — calling it with no cookie just returns OK."""
         resp = api_client.post("/api/auth/logout/", {}, format="json")
         assert resp.status_code == status.HTTP_200_OK
 
 
-# ─── Cookie cleanup (regression for the per-tab migration) ────────────────
+# ─── Cookie guardrail (regression for the #5 migration) ───────────────────
 
 
-class TestNoCookies:
-    """Guardrail: once we moved to sessionStorage, the auth endpoints should
-    never set a Set-Cookie header. A regression here would mean somebody
-    reintroduced _set_auth_cookies or its equivalent."""
+class TestRefreshCookieGuardrails:
+    """Refresh lives in the HttpOnly cookie and *only* there — never in the
+    response body. A regression here would mean somebody reintroduced
+    `{refresh: ...}` in the JSON payload and broken the XSS mitigation."""
 
-    def test_signup_does_not_set_cookies(self, api_client: APIClient):
+    def test_signup_response_has_no_refresh_key(self, api_client: APIClient):
         resp = api_client.post(
             "/api/auth/signup/",
             {
-                "email": "nocookie@test.com",
+                "email": "nobody@test.com",
                 "password": "SecurePass123!",
                 "first_name": "No",
-                "last_name": "Cookie",
+                "last_name": "Body",
                 "role": "account",
             },
             format="json",
         )
         assert resp.status_code == status.HTTP_201_CREATED
-        assert resp.cookies == {} or "access_token" not in resp.cookies
+        assert "refresh" not in resp.json()
 
-    def test_login_does_not_set_cookies(
+    def test_login_response_has_no_refresh_key(
         self, api_client: APIClient, subscriber_user
     ):
         resp = api_client.post(
@@ -244,4 +276,4 @@ class TestNoCookies:
             format="json",
         )
         assert resp.status_code == status.HTTP_200_OK
-        assert resp.cookies == {} or "access_token" not in resp.cookies
+        assert "refresh" not in resp.json()

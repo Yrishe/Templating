@@ -1,44 +1,22 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
-// ─── Per-tab token storage ──────────────────────────────────────────────────
+// ─── Access-token storage ───────────────────────────────────────────────────
 //
-// Tokens live in `sessionStorage` instead of httpOnly cookies so each browser
-// tab holds its own session. httpOnly cookies are per-origin, not per-tab, so
-// they can't hold two simultaneous sessions (Alice in one tab, Bob in another)
-// — whichever tab logs in last overwrites the cookie for everyone. sessionStorage
-// is per-tab and survives reloads, which is exactly the isolation we want.
-//
-// Trade-off: `sessionStorage` is JS-readable, so an XSS vulnerability could
-// exfiltrate the tokens. Mitigated by:
-//   1. 15-minute access token lifetime (SIMPLE_JWT setting)
-//   2. Refresh rotation + blacklist (ROTATE_REFRESH_TOKENS = True)
-//   3. CSP hardening (see PLANS.md #5)
+// Access tokens live here — in the JS heap, not sessionStorage. XSS can
+// still read this in the same tab, but:
+//   1. the token has a 15-minute TTL, and
+//   2. the refresh token is in an HttpOnly cookie the attacker can't read,
+// so an exfiltrated access alone buys at most a 15-minute window, not a
+// renewable session (finding #5 — see CHANGELOG). Multi-tab different-users
+// is no longer supported; users needing concurrent sessions use Chrome
+// profiles or incognito.
 
-const ACCESS_KEY = 'auth.access'
-const REFRESH_KEY = 'auth.refresh'
+let accessToken: string | null = null
 
-// Guard for SSR — sessionStorage is undefined during Next.js server render.
-const hasStorage = () => typeof window !== 'undefined' && !!window.sessionStorage
-
-export const tokenStorage = {
-  getAccess(): string | null {
-    if (!hasStorage()) return null
-    return window.sessionStorage.getItem(ACCESS_KEY)
-  },
-  getRefresh(): string | null {
-    if (!hasStorage()) return null
-    return window.sessionStorage.getItem(REFRESH_KEY)
-  },
-  set(access: string, refresh: string) {
-    if (!hasStorage()) return
-    window.sessionStorage.setItem(ACCESS_KEY, access)
-    window.sessionStorage.setItem(REFRESH_KEY, refresh)
-  },
-  clear() {
-    if (!hasStorage()) return
-    window.sessionStorage.removeItem(ACCESS_KEY)
-    window.sessionStorage.removeItem(REFRESH_KEY)
-  },
+export const accessTokenStore = {
+  get: (): string | null => accessToken,
+  set: (t: string) => { accessToken = t },
+  clear: () => { accessToken = null },
 }
 
 // ─── Refresh coordination ───────────────────────────────────────────────────
@@ -48,28 +26,26 @@ export const tokenStorage = {
 
 let refreshPromise: Promise<boolean> | null = null
 
-async function tryRefreshToken(): Promise<boolean> {
+export async function tryRefreshToken(): Promise<boolean> {
   if (refreshPromise) return refreshPromise
-  const refresh = tokenStorage.getRefresh()
-  if (!refresh) return false
 
   refreshPromise = fetch(`${API_BASE}/api/auth/token/refresh/`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh }),
   })
     .then(async (res) => {
       if (!res.ok) {
-        tokenStorage.clear()
+        accessTokenStore.clear()
         return false
       }
-      const body = (await res.json()) as { access?: string; refresh?: string }
-      if (!body.access || !body.refresh) return false
-      tokenStorage.set(body.access, body.refresh)
+      const body = (await res.json()) as { access?: string }
+      if (!body.access) return false
+      accessTokenStore.set(body.access)
       return true
     })
     .catch(() => {
-      tokenStorage.clear()
+      accessTokenStore.clear()
       return false
     })
     .finally(() => {
@@ -81,7 +57,7 @@ async function tryRefreshToken(): Promise<boolean> {
 // ─── Fetch wrapper ──────────────────────────────────────────────────────────
 
 function buildFetchOptions(options: RequestInit): RequestInit {
-  const access = tokenStorage.getAccess()
+  const access = accessTokenStore.get()
   const headers: Record<string, string> = {
     ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...((options.headers as Record<string, string> | undefined) ?? {}),
@@ -91,6 +67,7 @@ function buildFetchOptions(options: RequestInit): RequestInit {
   }
   return {
     ...options,
+    credentials: 'include',
     headers,
   }
 }

@@ -1,107 +1,173 @@
 # Future Implementation Plans
 
-Long-horizon design work that isn't scheduled yet. Each item lists motivation, scope, and the files that would be touched so the ticket can be picked up cold.
+Long-horizon work that is not scheduled yet. This doc keeps enough context so someone can pick up any item quickly.
 
 ---
 
-## Issues surfaced 2026-04-20 (browser smoke after Phase 1)
+## Current priorities and open decisions
 
-Two things the user hit while clicking around with `FEATURE_AI_THUMBS=true`. Neither blocks the Security #5 next step, but both want a first-pass triage before more feature work lands.
+### Recently landed
 
-### Issue A — No way to simulate inbound email in dev
+1. **Phase 1: AI-suggestion thumbs** (landed 2026-04-20, commit `1c99cc8`)
+   - Added `POST /api/feedback/ai/`.
+   - Added `<AiFeedback>` on email classifications and suggested replies.
+   - Exposed `FEATURE_AI_THUMBS` via `/api/auth/me/`.
+   - Verification: 13 feedback tests plus 116-suite pass.
+   - Also fixed 7 unrelated pre-existing test failures in `9e09848`.
 
-Phase 1's AI-thumbs widget only renders once an email has been classified + analysed, and the inbound-email path isn't exercised end-to-end in dev because there's no live mailbox forwarding into the webhook. Today the only way to light up the classification + analysis + thumbs surface is to POST to [`/api/webhooks/inbound-email/`](../backend/email_organiser/views.py) directly with the right `X-Webhook-Secret`.
+2. **Security #5: HttpOnly refresh cookie + in-memory access token** (landed 2026-04-21)
+   - Refresh token now uses `HttpOnly; Secure; SameSite=Strict` cookie scoped to `/api/auth/`.
+   - Access token now lives in a module-level ref in [frontend/src/lib/api.ts](../frontend/src/lib/api.ts).
+   - Auth context bootstraps through `/api/auth/token/refresh/`.
+   - Multi-tab different-users support was intentionally dropped.
+   - No CSP changes (already enforced in production).
+   - Full decisions are in [docs/security_5_plan.md](security_5_plan.md).
 
-**Action for next session:** add a dev affordance — either a Django management command (`python manage.py simulate_inbound_email --project=<id> --subject=...`) that calls the same code path as the webhook, or a seeded fixture the dev stack loads on first boot. First option is cheaper and matches how the other email-pipeline tests construct emails ([`incoming_email_factory`](../backend/tests/conftest.py) in conftest).
+### Decisions needed next
 
-### Issue B — Every nested feature under Projects tab 404s
+These decisions unblock the support plan and Phase 2 of research:
+- Support tool: Chatwoot vs Plain vs Intercom.
+- Automation hosting: n8n self-hosted (Compose) vs n8n Cloud.
 
-Observed: clicking into a project → chat, contract, change request, timeline, invite — all return 404. Widespread enough that it's probably a single root cause (frontend route shape mismatch or a recent backend URL rename), not five separate bugs.
+Draft picks + comparison tables + switch-triggers in [`/Users/yrish/.claude/plans/support-tool-and-n8n-decisions.md`](/Users/yrish/.claude/plans/support-tool-and-n8n-decisions.md) (training-cutoff numbers; verify against live vendor pages before committing budget — checklist at the bottom of that file).
 
-**Triage for next session:**
+---
 
-1. First, confirm this is **not** caused by today's work — Phase 1 only added `/api/feedback/ai/` and a `features` field on `/api/auth/me/`. Nothing in the patch touches project routing. Reproduce on a clean checkout of `377a29f` (pre-Phase-1) before assuming regression.
-2. DevTools → Network: note the exact 404 URL for at least one feature (chat or contract is easiest). If it's the frontend Next.js route 404ing, the problem is on the frontend router. If the browser reaches the Django API and that 404s, the backend URL conf moved.
-3. Suspect areas: the `development` branch was active earlier in the session (see git status at session start) and `main` is what we've been pushing to — if those diverged on project routes, a merge may have dropped URL patterns.
-4. Also worth checking: the Next.js 16.2.2 startup log mentioned "The 'middleware' file convention is deprecated. Please use 'proxy' instead." That's a warning, not an error, but if frontend route resolution changed between Next 15 and 16, nested `[projectId]` routes may be affected.
+## Issues found in browser smoke (2026-04-20)
 
-Capture actual 404 URLs + a screenshot before diving into code.
+### Issue A: No dev path to simulate inbound email — **Landed 2026-04-21**
+
+Shipped [`python manage.py simulate_inbound_email`](../backend/email_organiser/management/commands/simulate_inbound_email.py). Resolves a project by UUID or `generic_email`, creates the `IncomingEmail` row with a generated RFC-5322 message-id, and enqueues the same two Celery tasks the webhook fires (`create_incoming_email_notification`, `classify_incoming_email`). Supports `--skip-classify` when you don't want to burn Anthropic credits. Verified end-to-end — a simulated email lands in the DB and Celery picks it up.
+
+Example:
+```
+docker compose exec backend python manage.py simulate_inbound_email \
+  --project website-project@smithconsulting.com --subject "Delay on phase 2"
+```
+
+### Issue B: Nested routes under Projects all return 404 — **Fixed 2026-04-21**
+
+**Root cause:** `invited_account` users were issued `InvitedAccount` rows by the legacy `/api/projects/<id>/invite/` endpoint but **never** a matching `ProjectMembership` row. Every permission check across `projects/`, `contracts/`, `chat/`, `email_organiser/`, and `notifications/` filters by `ProjectMembership` — so invited users got an empty list from `/api/projects/` and a 404 on `/api/projects/<id>/`. The 404 cascaded into every nested tab because the layout's `useProject(id)` query errored out and none of the tab endpoints authorised the request either.
+
+Reproduced by logging in as `mike.invited@example.com` (fixture user, `invited_account` role) against `project 301`:
+- `GET /api/projects/` → `count: 0`
+- `GET /api/projects/33333333-3333-3333-3333-333333333301/` → `404`
+- Every tab endpoint behind the same check → `403` or `404`
+
+**Fix:**
+1. [backend/email_organiser/views.py](../backend/email_organiser/views.py) `ProjectInviteView.post()` now mirrors every `InvitedAccount` creation into a `ProjectMembership.get_or_create(...)` so the legacy invite endpoint is symmetric with `ProjectMemberAddView` (the one the frontend actually uses).
+2. [backend/fixtures/initial_data.json](../backend/fixtures/initial_data.json) gains a `projectmembership` row for `mike.invited` → project 301, backfilling the broken seed data so anyone running `loaddata` gets a working invited user.
+3. [backend/tests/test_permissions.py](../backend/tests/test_permissions.py) adds `test_project_invite_endpoint_creates_projectmembership` pinning the behaviour: invite → user sees the project in their list and can hit detail.
+
+Verified end-to-end: after reload, mike's project list returns the invited project and every nested tab endpoint returns 200.
+
+**Deferred / not in this fix:** the wider question of whether `InvitedAccount` should exist as a separate model at all, now that every invite path also creates `ProjectMembership`. Captured as a cleanup candidate — a single-migration consolidation that drops `InvitedAccount` and its URL would remove a whole class of "which table says who's invited?" confusion.
 
 ---
 
-## Next session — pick one
-
-1. ~~**Phase 1 — AI-suggestion thumbs**~~ **Landed 2026-04-20** (commit `1c99cc8`). Delivered `POST /api/feedback/ai/`, `<AiFeedback>` widget on email classifications + suggested replies, `FEATURE_AI_THUMBS` flag exposed via `/api/auth/me/`. 13 feedback tests + 116 suite green. Also fixed 7 unrelated pre-existing test failures while the env was warm (commit `9e09848`). Next research phase (A.2 app-wide widget) is still queued per [research.md](research.md).
-2. **Security #5 — HttpOnly refresh cookie + in-memory access token.** Planned 2026-04-20 with the user; implementation deferred. Scope is narrower than the original bullet said: CSP is already prod-enforced, so the work is purely the token-storage refactor. Multi-tab different-users support is being dropped as part of the fix. **Step-by-step plan + locked-in decisions in [docs/security_5_plan.md](security_5_plan.md).** Next session can pick this up cold.
-3. **Open decisions** (unblocks the `[support]` plan entirely; also relevant to Phase 2 of research):
-   - Chatwoot vs Plain vs Intercom.
-   - n8n self-host (in compose) vs n8n Cloud.
-
----
+## Program plans
 
 ## [research] User feedback program (Plan A + Plan C)
 
-**Status:** adopted 2026-04-19 — detail in [docs/research.md](research.md).
-**Phase 1 landed 2026-04-20** (commits `1c99cc8`, `9e09848`).
-**Next up:** Phase 2 — app-wide feedback widget (A.2). `AppFeedback` model + floating button + triage view in Django admin + n8n webhook. Blocked on the support-tool decision (Chatwoot vs Plain vs Intercom) — see open decisions above.
+**Status:** adopted 2026-04-19. Details in [docs/research.md](research.md).  
+**Phase 1:** landed 2026-04-20 (`1c99cc8`, `9e09848`).  
+**Next:** Phase 2 (A.2) — app-wide feedback widget.
 
-Combines always-on in-app capture (AI-suggestion thumbs + floating feedback widget) with a structured research program (quarterly NPS, interview opt-in pipeline). Phased over 5 implementation slices; Phase 1 is the smallest and delivers a labelled evaluation dataset for the email organiser.
+Phase 2 scope:
+- `AppFeedback` model.
+- Floating feedback button.
+- Django admin triage view.
+- n8n webhook integration.
+
+Blocker: support-tool decision (Chatwoot vs Plain vs Intercom).
+
+Program intent:
+- Always-on in-app capture (AI thumbs + floating feedback).
+- Structured research cadence (quarterly NPS + interview opt-in).
+- Five phased slices; Phase 1 already delivered the first labeled dataset for email organiser evaluation.
 
 ## [support] Customer support surface + event bus
 
-**Status:** adopted 2026-04-19 — detail in [docs/support.md](support.md).
+**Status:** adopted 2026-04-19. Details in [docs/support.md](support.md).
 
-Chatwoot (self-hosted, default recommendation) as the single conversation system of record; n8n as the event bus that fans feedback/support events out to Slack, Notion, Linear, and PagerDuty. Tool choice flagged for decision before first production rollout.
+Current recommendation:
+- Chatwoot (self-hosted) as conversation source of record.
+- n8n as event bus to fan out feedback/support events to Slack, Notion, Linear, and PagerDuty.
+
+Tooling choice must be finalized before first production rollout.
 
 ## [infra] Hosting + email provider choice
 
-**Status:** alternatives documented 2026-04-19 — detail in [docs/hosting_plans.md](hosting_plans.md).
+**Status:** options documented 2026-04-19. Details in [docs/hosting_plans.md](hosting_plans.md).
 
-Three coherent combos laid out (Fly.io + Postmark for minimal ops; Scaleway + Brevo for EU residency; Hetzner + Postmark for cheapest-at-scale). Decision owed before first production deploy; default recommendation is the Fly.io combo.
+Three viable stacks:
+- Fly.io + Postmark (lowest operational overhead).
+- Scaleway + Brevo (EU residency focus).
+- Hetzner + Postmark (lowest cost at scale).
+
+Decision required before first production deploy. Current default recommendation: Fly.io + Postmark.
 
 ---
 
 ## Per-project manager scoping (tightening oversight)
 
-**Status:** deferred — captured from security review finding #8 ([docs/security.md](security.md)).
+**Status:** deferred from security finding #8. See [docs/security.md](security.md).
 
-**Today's model:** a user with `role=MANAGER` has *global* oversight of every project, contract, and contract-request. This is consistent across:
-- [backend/contracts/views.py](../backend/contracts/views.py) — `ContractListCreateView`, `ContractDetailView`, `ContractActivateView`, `ContractRequestApproveView`, `ContractRequestRejectView`
-- helper [`_user_can_read_project`](../backend/contracts/views.py) (added for finding #4)
+### Current model
 
-**Proposed model:** managers are scoped to the projects they are explicitly assigned to (via `ProjectMembership` or a new `ManagerAssignment` table). Any cross-project action requires an elevated super-admin role.
+Users with `role=MANAGER` currently have global visibility across all projects, contracts, and contract requests.
 
-**Why this matters beyond security:**
+Examples:
+- [backend/contracts/views.py](../backend/contracts/views.py): `ContractListCreateView`, `ContractDetailView`, `ContractActivateView`, `ContractRequestApproveView`, `ContractRequestRejectView`
+- helper [`_user_can_read_project`](../backend/contracts/views.py)
 
-> This modification supports future expansion. For the creation of separate instances for multi company access.
+### Proposed model
 
-Per-manager scoping is the precondition for hosting multiple customer companies (tenants) in the same deployment without building a full multi-tenant database layer. Each company's managers would see only their own projects, contracts, and email-organiser data, even though everyone shares one Postgres database and one backend process.
+Managers should be scoped to explicitly assigned projects (via `ProjectMembership` or a new `ManagerAssignment` table). Cross-project access should require an elevated role.
 
-**Scope of the change:**
+This is important for future multi-company operation without full multi-tenant infrastructure. It keeps one Postgres and one backend process, while preventing cross-company visibility.
 
-1. **Data model** — decide between:
-   - reusing `ProjectMembership` rows with a new `role` column (`MANAGER`/`MEMBER`), or
-   - a dedicated `ManagerAssignment(user, project)` table (cleaner when a manager's *type* is per-project, not per-user).
-2. **Permissions layer** — extend [accounts/permissions.py](../backend/accounts/permissions.py) with a new `IsProjectManager` permission that checks both `role == MANAGER` *and* the membership table. Replace bare `IsManager` usage on write endpoints.
-3. **Queryset filtering** — remove the `if user.role == user.MANAGER: qs = qs.all()` branches across `contracts/views.py`, `projects/views.py`, `email_organiser/views.py`, `notifications/views.py`, `dashboard/views.py`, and the chat app. Every list endpoint must filter by assigned projects.
-4. **Super-admin escape hatch** — introduce a `SUPER_ADMIN` role (or a `User.is_superuser` gate) for the few legitimately global workflows: cross-company billing views, platform-wide diagnostics, seed-data management.
-5. **Frontend** — manager dashboards, project pickers, and any "all projects" toggles need to respect the new scope. Most of the UI already fetches through the scoped endpoints, so backend filtering drives most of the behavior.
-6. **Tests** — add explicit "manager A cannot see manager B's project" coverage, especially around the contract approval/activation flows and the email-organiser inbound webhook (which routes by the project's generic email address — tenants must not share that address space).
-7. **Migration** — existing data assumes one tenant. For the rollout: create a default `ManagerAssignment` row linking every current manager to every current project, preserving behavior until tenants are introduced.
+### Scope
 
-**Explicit non-goals for this change:**
-- No database-per-tenant split. We stay on shared Postgres + shared Redis; isolation is enforced at the permission / queryset layer only.
-- No separate deploys per tenant. One codebase, one backend, one frontend.
-- No subdomain-based routing. Tenant is determined by the authenticated user.
+1. **Data model**
+   - Option A: extend `ProjectMembership` with a `role` column (`MANAGER` / `MEMBER`).
+   - Option B: add `ManagerAssignment(user, project)`.
+2. **Permissions**
+   - Add `IsProjectManager` in [accounts/permissions.py](../backend/accounts/permissions.py).
+   - Enforce both `role == MANAGER` and project assignment.
+   - Replace direct `IsManager` use on write endpoints.
+3. **Querysets**
+   - Remove manager-global shortcuts like `if user.role == user.MANAGER: qs = qs.all()`.
+   - Apply project scoping in `contracts/views.py`, `projects/views.py`, `email_organiser/views.py`, `notifications/views.py`, `dashboard/views.py`, and chat views.
+4. **Super-admin path**
+   - Add `SUPER_ADMIN` role (or `User.is_superuser`) for genuinely global workflows (billing, diagnostics, seed data).
+5. **Frontend**
+   - Update manager dashboards, project pickers, and any "all projects" UX to reflect scope.
+6. **Tests**
+   - Add explicit "manager A cannot see manager B project" coverage.
+   - Include contract approval/activation and inbound webhook routing paths.
+7. **Migration**
+   - Backfill default assignments from existing managers to existing projects to preserve current behavior during rollout.
 
-**Risks:**
-- Silent data leaks if any viewset or Celery task is missed during the sweep. Mitigation: add a regression test that spins up two managers in two projects and asserts zero cross-visibility across every list endpoint.
-- Breaking existing single-tenant deployments. Mitigation: feature-flag the new scoping (`PROJECT_SCOPED_MANAGERS=True` default off) during the first release.
+### Non-goals
 
-**Related findings / work:**
-- Security finding #8 (closed in the changelog as accepted-risk under the current design; reopens when this plan lands).
-- The email-organiser webhook already routes by `project.generic_email` — tenants must have disjoint address pools, or the router needs a tenant prefix.
+- No database-per-tenant split.
+- No per-tenant deployments.
+- No subdomain-based tenant routing.
+- Tenant remains derived from authenticated user context.
+
+### Risks and mitigations
+
+- **Risk:** missed view/task creates silent data leaks.  
+  **Mitigation:** regression suite with two managers/two projects, asserting no cross-visibility on all list endpoints.
+- **Risk:** single-tenant installations break during rollout.  
+  **Mitigation:** feature flag `PROJECT_SCOPED_MANAGERS=True` (default off for first release).
+
+### Related work
+
+- Security finding #8 (currently accepted-risk, reopens when this lands).
+- Inbound email routing currently uses `project.generic_email`; tenants need disjoint address pools or tenant-aware routing.
 
 ---
 
-_Last updated: 2026-04-20._
+_Last updated: 2026-04-21 (Issue A + Issue B landed)._

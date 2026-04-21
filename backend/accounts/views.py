@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from rest_framework import generics, permissions, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,18 +16,34 @@ from .serializers import AccountSerializer, UserLoginSerializer, UserProfileSeri
 def _auth_payload(user: User, refresh: RefreshToken) -> dict:
     """Response body for login / signup / refresh.
 
-    Tokens are returned in the body so the frontend can put them in
-    sessionStorage (per-tab storage) and send them via the Authorization
-    header. That's what makes "two users in two tabs of the same browser"
-    work — httpOnly cookies are per-origin, not per-tab, so they can't
-    hold two sessions simultaneously. See PLANS.md #5 for the XSS
-    mitigation plan (short access lifetime + rotation + CSP hardening).
+    The refresh token is no longer in the body — it rides in an HttpOnly
+    cookie set by `_set_refresh_cookie` on the response. Only the access
+    token (short-lived, in-memory on the client) comes back in JSON.
     """
     return {
         "user": UserProfileSerializer(user).data,
         "access": str(refresh.access_token),
-        "refresh": str(refresh),
     }
+
+
+def _set_refresh_cookie(response: Response, refresh_str: str) -> None:
+    response.set_cookie(
+        settings.REFRESH_COOKIE_NAME,
+        refresh_str,
+        max_age=settings.REFRESH_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=settings.REFRESH_COOKIE_SECURE,
+        samesite=settings.REFRESH_COOKIE_SAMESITE,
+        path=settings.REFRESH_COOKIE_PATH,
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(
+        settings.REFRESH_COOKIE_NAME,
+        path=settings.REFRESH_COOKIE_PATH,
+        samesite=settings.REFRESH_COOKIE_SAMESITE,
+    )
 
 
 class SignupView(APIView):
@@ -40,7 +57,9 @@ class SignupView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
-        return Response(_auth_payload(user, refresh), status=status.HTTP_201_CREATED)
+        response = Response(_auth_payload(user, refresh), status=status.HTTP_201_CREATED)
+        _set_refresh_cookie(response, str(refresh))
+        return response
 
 
 class LoginView(APIView):
@@ -53,32 +72,36 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         refresh = RefreshToken.for_user(user)
-        return Response(_auth_payload(user, refresh), status=status.HTTP_200_OK)
+        response = Response(_auth_payload(user, refresh), status=status.HTTP_200_OK)
+        _set_refresh_cookie(response, str(refresh))
+        return response
 
 
 class LogoutView(APIView):
-    # AllowAny so a 401'd client can still blacklist its refresh token
-    # without needing to re-auth first — they send `{refresh: "..."}` in
-    # the body and we mark it invalid.
+    # AllowAny so an expired client can still trigger a clean logout — we
+    # read the refresh token from the HttpOnly cookie (the browser sends
+    # it on same-site POSTs), blacklist if present, and clear the cookie.
     permission_classes = [permissions.AllowAny]
 
     def post(self, request: Request) -> Response:
-        raw_refresh = request.data.get("refresh") if isinstance(request.data, dict) else None
+        raw_refresh = request.COOKIES.get(settings.REFRESH_COOKIE_NAME)
         if raw_refresh:
             try:
                 RefreshToken(raw_refresh).blacklist()
             except (TokenError, InvalidToken):
                 pass
-        return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+        response = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+        _clear_refresh_cookie(response)
+        return response
 
 
 class TokenRefreshCookieView(APIView):
-    """POST /api/auth/token/refresh/ — rotate tokens.
+    """POST /api/auth/token/refresh/ — rotate tokens via HttpOnly cookie.
 
-    Historically this read the refresh token from an httpOnly cookie.
-    Since we moved to per-tab sessionStorage for multi-user-in-one-browser
-    support, the refresh token now comes in the request body instead.
-    The URL name is kept for backward compatibility.
+    Reads the refresh token from `settings.REFRESH_COOKIE_NAME`. There is
+    no body fallback — legacy clients sending `{refresh: ...}` in the
+    body get a 401 (finding #5). Returns `{access}` and sets the rotated
+    refresh cookie on the response.
     """
 
     permission_classes = [permissions.AllowAny]
@@ -87,7 +110,7 @@ class TokenRefreshCookieView(APIView):
     throttle_scope = "auth_refresh"
 
     def post(self, request: Request) -> Response:
-        raw_refresh = request.data.get("refresh") if isinstance(request.data, dict) else None
+        raw_refresh = request.COOKIES.get(settings.REFRESH_COOKIE_NAME)
         if not raw_refresh:
             return Response(
                 {"detail": "Refresh token not found."},
@@ -100,16 +123,13 @@ class TokenRefreshCookieView(APIView):
         # Rotation is configured via SIMPLE_JWT['ROTATE_REFRESH_TOKENS'] +
         # BLACKLIST_AFTER_ROTATION — accessing `access_token` on the
         # existing refresh returns the newly-signed access token, and
-        # returning `str(refresh)` gives back the same refresh. The
-        # blacklist rotation happens automatically when the client
-        # eventually uses the next refresh.
-        return Response(
-            {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            },
+        # str(refresh) gives back the same (now-blacklisted-next-use) refresh.
+        response = Response(
+            {"access": str(refresh.access_token)},
             status=status.HTTP_200_OK,
         )
+        _set_refresh_cookie(response, str(refresh))
+        return response
 
 
 class MeView(generics.RetrieveUpdateAPIView):

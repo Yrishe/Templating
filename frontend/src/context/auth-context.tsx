@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { api, tokenStorage } from '@/lib/api'
+import { accessTokenStore, api, tryRefreshToken } from '@/lib/api'
 import type { User, LoginCredentials, SignupData } from '@/types'
 
 interface AuthContextValue {
@@ -17,7 +17,6 @@ interface AuthContextValue {
 interface AuthResponseBody {
   user: User
   access: string
-  refresh: string
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -27,9 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   const refreshUser = useCallback(async () => {
-    // If this tab has no access token in sessionStorage there's nothing to
-    // check — skip the /me call to avoid a guaranteed 401 on a fresh tab.
-    if (!tokenStorage.getAccess()) {
+    if (!accessTokenStore.get()) {
       setUser(null)
       return
     }
@@ -38,35 +35,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(me)
     } catch {
       setUser(null)
-      tokenStorage.clear()
+      accessTokenStore.clear()
     }
   }, [])
 
   useEffect(() => {
-    refreshUser().finally(() => setIsLoading(false))
-  }, [refreshUser])
+    // Every page load starts with no access token in memory. Ask the
+    // refresh endpoint whether the browser still has a valid HttpOnly
+    // refresh cookie; if yes, mint a fresh access and hydrate /me.
+    void (async () => {
+      const ok = await tryRefreshToken()
+      if (ok) {
+        try {
+          const me = await api.get<User>('/api/auth/me/')
+          setUser(me)
+        } catch {
+          setUser(null)
+        }
+      } else {
+        setUser(null)
+      }
+      setIsLoading(false)
+    })()
+  }, [])
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     const resp = await api.post<AuthResponseBody>('/api/auth/login/', credentials)
-    tokenStorage.set(resp.access, resp.refresh)
+    accessTokenStore.set(resp.access)
     setUser(resp.user)
   }, [])
 
   const logout = useCallback(async () => {
-    const refresh = tokenStorage.getRefresh()
     try {
-      await api.post('/api/auth/logout/', { refresh })
+      await api.post('/api/auth/logout/', {})
     } finally {
       // Always clear local state — a network failure on blacklist shouldn't
-      // trap the user in a "logged in" UI for this tab.
-      tokenStorage.clear()
+      // trap the user in a "logged in" UI. The server also clears the
+      // HttpOnly cookie on its response; we only own the in-memory access.
+      accessTokenStore.clear()
       setUser(null)
     }
   }, [])
 
   const signup = useCallback(async (data: SignupData) => {
     const resp = await api.post<AuthResponseBody>('/api/auth/signup/', data)
-    tokenStorage.set(resp.access, resp.refresh)
+    accessTokenStore.set(resp.access)
     setUser(resp.user)
   }, [])
 

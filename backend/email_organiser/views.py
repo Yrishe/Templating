@@ -182,7 +182,15 @@ class ProjectInviteView(APIView):
         project = _require_project_membership(project_id, request.user)
         serializer = InvitedAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(project=project, invited_by=request.user)
+        invite = serializer.save(project=project, invited_by=request.user)
+        # Mirror the row into ProjectMembership so every permission check
+        # (contracts, chat, timeline, notifications) treats the invite as a
+        # real member. Without this the invited user has an InvitedAccount
+        # row but no access — their project list comes back empty and every
+        # nested tab 404s on the detail lookup. The primary invite flow
+        # (`ProjectMemberAddView`) already creates ProjectMembership; this
+        # keeps the legacy endpoint symmetric.
+        ProjectMembership.objects.get_or_create(project=project, user=invite.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
