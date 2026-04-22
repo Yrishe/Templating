@@ -14,6 +14,8 @@ import type { FeatureFlags } from '@/types'
 
 const ENV_FALLBACKS: Record<keyof FeatureFlags, boolean> = {
   ai_thumbs: (process.env.NEXT_PUBLIC_FEATURE_AI_THUMBS ?? 'false').toLowerCase() === 'true',
+  feature_feedback:
+    (process.env.NEXT_PUBLIC_FEATURE_FEATURE_FEEDBACK ?? 'false').toLowerCase() === 'true',
 }
 
 export function useFeatureFlag(flag: keyof FeatureFlags): boolean {

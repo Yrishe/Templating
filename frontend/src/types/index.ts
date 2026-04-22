@@ -2,6 +2,7 @@ export type UserRole = 'manager' | 'account' | 'invited_account'
 
 export interface FeatureFlags {
   ai_thumbs: boolean
+  feature_feedback: boolean
 }
 
 export interface User {
@@ -26,6 +27,18 @@ export interface AiSuggestionFeedback {
   reason: string
   model: string
   provider: string
+  created_at: string
+  updated_at: string
+}
+
+export interface FeatureFeedback {
+  id: string
+  user: string
+  feature_key: string
+  rating: 1 | -1
+  comment: string
+  project: string | null
+  route: string
   created_at: string
   updated_at: string
 }

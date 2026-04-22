@@ -23,13 +23,16 @@ Long-horizon work that is not scheduled yet. This doc keeps enough context so so
    - No CSP changes (already enforced in production).
    - Full decisions are in [docs/security_5_plan.md](security_5_plan.md).
 
-### Decisions needed next
+3. **Per-feature feedback widget (Phase 1.5)** (landed 2026-04-22)
+   - `FeatureFeedback` model + `POST /api/feedback/feature/`; thumbs + optional comment keyed on (`user`, `feature_key`, `project`).
+   - `<FeatureFeedback>` React component mounted on Dashboard, Project Overview, and Email-Organiser Analysis Panel.
+   - Gated by `FEATURE_FEATURE_FEEDBACK` flag exposed through `/api/auth/me/features.feature_feedback`.
+   - Intentionally narrower than the Phase 2 floating-button sketch in [docs/research.md](research.md); support-tool + n8n decisions are still deferred.
 
-These decisions unblock the support plan and Phase 2 of research:
-- Support tool: Chatwoot vs Plain vs Intercom.
-- Automation hosting: n8n self-hosted (Compose) vs n8n Cloud.
+### Postponed
 
-Draft picks + comparison tables + switch-triggers in [`/Users/yrish/.claude/plans/support-tool-and-n8n-decisions.md`](/Users/yrish/.claude/plans/support-tool-and-n8n-decisions.md) (training-cutoff numbers; verify against live vendor pages before committing budget — checklist at the bottom of that file).
+- **Support tool: Chatwoot vs Plain vs Intercom** — deferred. Per-feature feedback widget (above) covers the "collect user opinions on the product" need for now; help-desk ticketing can wait until there are actually customers with open questions. Draft picks + comparison tables + switch-triggers still live in [`/Users/yrish/.claude/plans/support-tool-and-n8n-decisions.md`](/Users/yrish/.claude/plans/support-tool-and-n8n-decisions.md) and [docs/support-software-research.md](support-software-research.md).
+- **Automation hosting: n8n self-hosted (Compose) vs n8n Cloud** — deferred with the support-tool decision. Nothing in the current stack actively needs an event bus.
 
 ---
 
@@ -170,4 +173,4 @@ This is important for future multi-company operation without full multi-tenant i
 
 ---
 
-_Last updated: 2026-04-21 (Issue A + Issue B landed)._
+_Last updated: 2026-04-22 (per-feature feedback widget landed; support-tool decision postponed)._

@@ -65,6 +65,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_features(self, _obj: User) -> dict[str, bool]:
         return {
             "ai_thumbs": bool(getattr(settings, "FEATURE_AI_THUMBS", False)),
+            "feature_feedback": bool(getattr(settings, "FEATURE_FEATURE_FEEDBACK", False)),
         }
 
 

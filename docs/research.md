@@ -171,11 +171,14 @@ See [REQUIREMENTS.md](../REQUIREMENTS.md) §6 for the broader compliance baselin
 
 ## Implementation phases
 
-**Phase 1 — Plan A.1 (AI thumbs)** · ~3 days
+**Phase 1 — Plan A.1 (AI thumbs)** · ~3 days · **Landed 2026-04-20** (`1c99cc8`)
 New `feedback` app + `AISuggestionFeedback` model + endpoint + `<AiFeedback>` React component + smoke tests. No consent/privacy UI yet (suggestion-level feedback is low-PII).
 
-**Phase 2 — Plan A.2 (app feedback widget)** · ~3 days
-`AppFeedback` model + endpoint + floating widget + triage view in Django admin. Route webhook to n8n per [docs/support.md](support.md). Ship behind a feature flag.
+**Phase 1.5 — per-feature feedback widget** · shipped 2026-04-22
+Intermediate surface between A.1 and A.2. `FeatureFeedback` model + `POST /api/feedback/feature/` + `<FeatureFeedback>` component keyed on a dotted `feature_key` (e.g. `dashboard.home`, `projects.overview`). Mounted on Dashboard, Project Overview, and the email-organiser analysis panel. Gated by `FEATURE_FEATURE_FEEDBACK`. 14 regression tests in `backend/tests/test_feature_feedback.py`.
+
+**Phase 2 — Plan A.2 (app feedback widget)** · ~3 days · deferred
+`AppFeedback` model + endpoint + floating widget + triage view in Django admin. Route webhook to n8n per [docs/support.md](support.md). Ship behind a feature flag. Waiting on the support-tool + n8n-hosting decisions; the Phase 1.5 per-feature widget covers immediate needs.
 
 **Phase 3 — Plan C.1 (NPS)** · ~4 days
 Beat task + invite email + tokenised page + summary endpoint + dashboard card.

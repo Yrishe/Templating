@@ -340,11 +340,11 @@ class TestMeFeatureFlag:
         settings.FEATURE_AI_THUMBS = True
         resp = subscriber_client.get("/api/auth/me/")
         assert resp.status_code == status.HTTP_200_OK
-        assert resp.json()["features"] == {"ai_thumbs": True}
+        assert resp.json()["features"]["ai_thumbs"] is True
 
     def test_me_flag_defaults_off(
         self, subscriber_client: APIClient, settings
     ):
         settings.FEATURE_AI_THUMBS = False
         resp = subscriber_client.get("/api/auth/me/")
-        assert resp.json()["features"] == {"ai_thumbs": False}
+        assert resp.json()["features"]["ai_thumbs"] is False

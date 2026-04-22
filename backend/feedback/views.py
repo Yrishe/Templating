@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .models import AISuggestionFeedback
-from .serializers import AISuggestionFeedbackSerializer
+from .models import AISuggestionFeedback, FeatureFeedback
+from .serializers import AISuggestionFeedbackSerializer, FeatureFeedbackSerializer
 
 
 def _visible_project_ids(user):
@@ -120,5 +120,59 @@ class AISuggestionFeedbackView(APIView):
 
         return Response(
             AISuggestionFeedbackSerializer(obj).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class FeatureFeedbackView(APIView):
+    """POST /api/feedback/feature/ — per-feature 👍 / 👎 + optional comment.
+
+    Idempotent upsert on ``(user, feature_key, project)``. `project` may be
+    null for app-global features (the dashboard, the profile page). When
+    present, the project must be one the caller can see — cross-project
+    targets return 404 to avoid leaking existence.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "feature_feedback"
+
+    def post(self, request):
+        serializer = FeatureFeedbackSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        feature_key = serializer.validated_data["feature_key"]
+        rating = serializer.validated_data["rating"]
+        comment = serializer.validated_data.get("comment", "")
+        project = serializer.validated_data.get("project")
+        route = serializer.validated_data.get("route", "")
+
+        if project is not None and project.pk not in set(_visible_project_ids(request.user)):
+            # Same leak-prevention as AISuggestionFeedbackView — don't 403.
+            return Response(
+                {"detail": "Target not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        obj, created = FeatureFeedback.objects.get_or_create(
+            user=request.user,
+            feature_key=feature_key,
+            project=project,
+            defaults={
+                "rating": rating,
+                "comment": comment,
+                "route": route,
+            },
+        )
+        if not created:
+            obj.rating = rating
+            obj.comment = comment
+            # Keep the most recent route the client saw — useful when a
+            # feature is mounted on more than one page.
+            if route:
+                obj.route = route
+            obj.save(update_fields=["rating", "comment", "route", "updated_at"])
+
+        return Response(
+            FeatureFeedbackSerializer(obj).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )

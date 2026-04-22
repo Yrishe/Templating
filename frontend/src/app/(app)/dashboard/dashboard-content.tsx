@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ProjectSummaryCard } from '@/components/dashboard/project-summary-card'
 import { PendingManagersPanel } from '@/components/dashboard/pending-managers-panel'
+import { FeatureFeedback } from '@/components/feedback/feature-feedback'
 import { useDashboard } from '@/hooks/use-notifications'
 import { useAuth } from '@/hooks/use-auth'
 import { ROUTES } from '@/lib/constants'
@@ -129,6 +130,8 @@ export function DashboardContent() {
               ))}
             </div>
           )}
+
+          <FeatureFeedback featureKey="dashboard.home" label="How's the dashboard?" />
 
         </div>
       </div>

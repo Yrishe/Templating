@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { NotificationFeed } from '@/components/dashboard/notification-feed'
+import { FeatureFeedback } from '@/components/feedback/feature-feedback'
 import { useProject, useProjectContract, useProjectMembers, useContractRequests } from '@/hooks/use-projects'
 import { useAuth } from '@/hooks/use-auth'
 import { ROUTES } from '@/lib/constants'
@@ -188,6 +189,12 @@ export default function ProjectOverviewPage() {
           </CardContent>
         </Card>
       )}
+
+      <FeatureFeedback
+        featureKey="projects.overview"
+        projectId={id}
+        label="How's this project overview?"
+      />
     </div>
   )
 }

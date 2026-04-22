@@ -181,6 +181,9 @@ REST_FRAMEWORK = {
         # AI thumbs / feedback — multiple classifications and suggestions
         # may be rated in one screen, so a looser limit than app feedback.
         "ai_feedback": "30/minute",
+        # Per-feature thumbs + comment. Tighter than ai_feedback because
+        # a user hits at most one FeatureFeedback widget per page.
+        "feature_feedback": "20/minute",
     },
 }
 
@@ -290,6 +293,9 @@ ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 # and pulled without a redeploy. Exposed to the frontend via
 # /api/auth/me/ → UserProfileSerializer.features.
 FEATURE_AI_THUMBS = os.environ.get("FEATURE_AI_THUMBS", "false").lower() in (
+    "1", "true", "yes", "on",
+)
+FEATURE_FEATURE_FEEDBACK = os.environ.get("FEATURE_FEATURE_FEEDBACK", "false").lower() in (
     "1", "true", "yes", "on",
 )
 

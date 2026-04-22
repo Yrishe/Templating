@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { useResolveEmail, useReanalyseEmail } from '@/hooks/use-email-organiser'
 import { CategoryBadge, RelevanceBadge } from './email-organiser-panel'
 import { AiFeedback } from '@/components/feedback/ai-feedback'
+import { FeatureFeedback } from '@/components/feedback/feature-feedback'
 import type { IncomingEmail } from '@/types'
 
 function RiskBadge({ level }: { level: string }) {
@@ -215,6 +216,12 @@ export function AnalysisPanel({ projectId, email }: AnalysisPanelProps) {
                 Check the project timeline for details.
               </div>
             )}
+
+            <FeatureFeedback
+              featureKey="email-organiser.analysis"
+              projectId={projectId}
+              label="How's the AI analysis for this email?"
+            />
           </div>
         )}
       </CardContent>
