@@ -29,6 +29,10 @@ Long-horizon work that is not scheduled yet. This doc keeps enough context so so
    - Gated by `FEATURE_FEATURE_FEEDBACK` flag exposed through `/api/auth/me/features.feature_feedback`.
    - Intentionally narrower than the Phase 2 floating-button sketch in [docs/research.md](research.md); support-tool + n8n decisions are still deferred.
 
+### Next up — path to first production deploy
+
+Ordered work list + current-state snapshot lives in [docs/deployment_plan.md](deployment_plan.md). The single blocker is the hosting decision (Fly.io + Postmark / Scaleway + Brevo / Hetzner + Postmark — see [docs/hosting_plans.md](hosting_plans.md)); production Dockerfile + CI pipeline is the largest remaining work block and is hosting-agnostic, so it can start in parallel.
+
 ### Postponed
 
 - **Support tool: Chatwoot vs Plain vs Intercom** — deferred. Per-feature feedback widget (above) covers the "collect user opinions on the product" need for now; help-desk ticketing can wait until there are actually customers with open questions. Draft picks + comparison tables + switch-triggers still live in [`/Users/yrish/.claude/plans/support-tool-and-n8n-decisions.md`](/Users/yrish/.claude/plans/support-tool-and-n8n-decisions.md) and [docs/support-software-research.md](support-software-research.md).
