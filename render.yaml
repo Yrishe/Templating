@@ -1,0 +1,276 @@
+# Render Blueprint — prod-only deployment
+#
+# Apply via: Render dashboard → New → Blueprint → select this repo.
+# Render reads this file, provisions 6 resources, and wires env vars
+# between them. After the first apply, fill in the sync:false secrets
+# in each service's dashboard ("Environment" tab) and redeploy.
+#
+# Staging is NOT wired here — see docs/deploy_runbook.md for why.
+
+databases:
+  - name: contract-mgmt-postgres
+    plan: starter                    # $7/mo · daily backups · 7-day retention
+    databaseName: contract_mgmt
+    user: contract_user
+    postgresMajorVersion: "16"
+    ipAllowList: []                  # empty list = only Render-internal access
+
+services:
+  # ─── Key Value store (Redis) for Celery broker + Channels layer ────────
+  - type: redis
+    name: contract-mgmt-redis
+    plan: starter                    # $10/mo · persists under pressure
+    ipAllowList: []
+    # No maxmemoryPolicy here — default `noeviction` is correct for a
+    # Celery broker; evicting tasks under pressure silently loses work.
+
+  # ─── Backend API (Daphne + Django + Channels) ──────────────────────────
+  - type: web
+    name: contract-mgmt-backend
+    runtime: docker
+    plan: starter                    # Starter is required — free tier web
+                                     # services spin down after 15 min idle,
+                                     # which breaks inbound email webhooks.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/docs/
+    autoDeploy: false                # CD workflow calls Deploy Hook after CI
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+
+      # ── Secrets (fill in via dashboard, sync:false keeps them out of git) ─
+      - key: DJANGO_SECRET_KEY
+        generateValue: true          # Render generates a strong value once
+      - key: INBOUND_EMAIL_WEBHOOK_SECRET
+        generateValue: true          # ditto — user pastes the generated value
+                                     # into Brevo's inbound webhook config
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: EMAIL_HOST_USER          # Brevo SMTP login (your Brevo account email)
+        sync: false
+      - key: EMAIL_HOST_PASSWORD      # Brevo SMTP key (NOT account password)
+        sync: false
+      # Textract OCR is optional; leaving these empty just skips the
+      # pypdf → Textract fallback path.
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      # ── Outbound email via Brevo (SMTP relay) ─────────────────────────────
+      - key: EMAIL_HOST
+        value: smtp-relay.brevo.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "true"
+      - key: DEFAULT_FROM_EMAIL
+        value: noreply@example.com   # ← UPDATE to your real sending address
+
+      # ── Anthropic model ──────────────────────────────────────────────────
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
+
+      # ── Database (from the Postgres service above) ───────────────────────
+      - fromDatabase:
+          name: contract-mgmt-postgres
+          property: host
+        key: DB_HOST
+      - fromDatabase:
+          name: contract-mgmt-postgres
+          property: port
+        key: DB_PORT
+      - fromDatabase:
+          name: contract-mgmt-postgres
+          property: database
+        key: DB_NAME
+      - fromDatabase:
+          name: contract-mgmt-postgres
+          property: user
+        key: DB_USER
+      - fromDatabase:
+          name: contract-mgmt-postgres
+          property: password
+        key: DB_PASSWORD
+
+      # ── Redis / Channels layer / Celery (from the redis service above) ──
+      - fromService:
+          name: contract-mgmt-redis
+          type: redis
+          property: host
+        key: REDIS_HOST
+      - fromService:
+          name: contract-mgmt-redis
+          type: redis
+          property: port
+        key: REDIS_PORT
+      - fromService:
+          name: contract-mgmt-redis
+          type: redis
+          property: connectionString
+        key: CELERY_BROKER_URL
+      - fromService:
+          name: contract-mgmt-redis
+          type: redis
+          property: connectionString
+        key: CELERY_RESULT_BACKEND
+
+      # ── Hostnames / CORS ────────────────────────────────────────────────
+      # Initially set to the *.onrender.com hosts so the first deploy
+      # works. Update these in the dashboard after Cloudflare DNS points
+      # at Render (docs/deploy_runbook.md §5).
+      - key: DJANGO_ALLOWED_HOSTS
+        value: contract-mgmt-backend.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://contract-mgmt-frontend.onrender.com
+
+      # ── Feature flags (off by default; flip after first smoke test) ─────
+      - key: FEATURE_AI_THUMBS
+        value: "false"
+      - key: FEATURE_FEATURE_FEEDBACK
+        value: "false"
+
+  # ─── Celery worker (async tasks: AI classification, notifications) ─────
+  - type: worker
+    name: contract-mgmt-celery-worker
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: celery -A config worker -l info
+    autoDeploy: false
+    envVars:
+      # Worker reuses every backend env var. `fromService` with
+      # envVarKey pulls a specific var from another service so we don't
+      # maintain two lists. Applied to each var the worker needs.
+      - key: DJANGO_SETTINGS_MODULE
+        fromService:
+          name: contract-mgmt-backend
+          type: web
+          envVarKey: DJANGO_SETTINGS_MODULE
+      - key: DJANGO_SECRET_KEY
+        fromService:
+          name: contract-mgmt-backend
+          type: web
+          envVarKey: DJANGO_SECRET_KEY
+      - key: DJANGO_ALLOWED_HOSTS
+        fromService:
+          name: contract-mgmt-backend
+          type: web
+          envVarKey: DJANGO_ALLOWED_HOSTS
+      - key: DB_HOST
+        fromDatabase: { name: contract-mgmt-postgres, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: contract-mgmt-postgres, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: contract-mgmt-postgres, property: database }
+      - key: DB_USER
+        fromDatabase: { name: contract-mgmt-postgres, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: contract-mgmt-postgres, property: password }
+      - key: REDIS_HOST
+        fromService: { name: contract-mgmt-redis, type: redis, property: host }
+      - key: REDIS_PORT
+        fromService: { name: contract-mgmt-redis, type: redis, property: port }
+      - key: CELERY_BROKER_URL
+        fromService: { name: contract-mgmt-redis, type: redis, property: connectionString }
+      - key: CELERY_RESULT_BACKEND
+        fromService: { name: contract-mgmt-redis, type: redis, property: connectionString }
+      - key: ANTHROPIC_API_KEY
+        fromService:
+          name: contract-mgmt-backend
+          type: web
+          envVarKey: ANTHROPIC_API_KEY
+      - key: ANTHROPIC_MODEL
+        fromService:
+          name: contract-mgmt-backend
+          type: web
+          envVarKey: ANTHROPIC_MODEL
+      - key: SENTRY_DSN
+        fromService:
+          name: contract-mgmt-backend
+          type: web
+          envVarKey: SENTRY_DSN
+      - key: EMAIL_HOST
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: EMAIL_HOST }
+      - key: EMAIL_PORT
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: EMAIL_PORT }
+      - key: EMAIL_USE_TLS
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: EMAIL_USE_TLS }
+      - key: EMAIL_HOST_USER
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: EMAIL_HOST_USER }
+      - key: EMAIL_HOST_PASSWORD
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: EMAIL_HOST_PASSWORD }
+      - key: DEFAULT_FROM_EMAIL
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: DEFAULT_FROM_EMAIL }
+
+  # ─── Celery beat (scheduled task dispatcher) ───────────────────────────
+  # Separate worker because running beat inside a worker process is not
+  # supported reliably — beat needs its own single process so schedules
+  # don't fire twice.
+  - type: worker
+    name: contract-mgmt-celery-beat
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: celery -A config beat -l info
+    autoDeploy: false
+    envVars:
+      # Beat needs the same env as the worker. Pulled by reference so
+      # there's one source of truth (the backend web service).
+      - key: DJANGO_SETTINGS_MODULE
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: DJANGO_SETTINGS_MODULE }
+      - key: DJANGO_SECRET_KEY
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: DJANGO_SECRET_KEY }
+      - key: DJANGO_ALLOWED_HOSTS
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: DJANGO_ALLOWED_HOSTS }
+      - key: DB_HOST
+        fromDatabase: { name: contract-mgmt-postgres, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: contract-mgmt-postgres, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: contract-mgmt-postgres, property: database }
+      - key: DB_USER
+        fromDatabase: { name: contract-mgmt-postgres, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: contract-mgmt-postgres, property: password }
+      - key: CELERY_BROKER_URL
+        fromService: { name: contract-mgmt-redis, type: redis, property: connectionString }
+      - key: CELERY_RESULT_BACKEND
+        fromService: { name: contract-mgmt-redis, type: redis, property: connectionString }
+      - key: SENTRY_DSN
+        fromService: { name: contract-mgmt-backend, type: web, envVarKey: SENTRY_DSN }
+
+  # ─── Frontend (Next.js standalone) ─────────────────────────────────────
+  - type: web
+    name: contract-mgmt-frontend
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    # Use the production `runner` stage; the `deps` stage is only for dev.
+    dockerTarget: runner
+    healthCheckPath: /login          # login page is the public landing; 200 confirms the frontend is alive
+    autoDeploy: false
+    envVars:
+      # NEXT_PUBLIC_* are baked into the JS bundle at `next build` time.
+      # Render passes envVars as Docker build args too, so declaring them
+      # here makes them available during the builder stage (the Dockerfile
+      # must have matching `ARG` declarations — see frontend/Dockerfile).
+      # Initially points at the *.onrender.com backend; swap to the
+      # Cloudflare api.* subdomain after DNS flips.
+      - key: NEXT_PUBLIC_API_URL
+        value: https://contract-mgmt-backend.onrender.com
+      - key: NEXT_PUBLIC_WS_URL
+        value: wss://contract-mgmt-backend.onrender.com
+      # Frontend-side feature flags — default off, match backend.
+      - key: NEXT_PUBLIC_FEATURE_AI_THUMBS
+        value: "false"
+      - key: NEXT_PUBLIC_FEATURE_FEATURE_FEEDBACK
+        value: "false"

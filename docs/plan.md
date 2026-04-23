@@ -29,9 +29,9 @@ Long-horizon work that is not scheduled yet. This doc keeps enough context so so
    - Gated by `FEATURE_FEATURE_FEEDBACK` flag exposed through `/api/auth/me/features.feature_feedback`.
    - Intentionally narrower than the Phase 2 floating-button sketch in [docs/research.md](research.md); support-tool + n8n decisions are still deferred.
 
-### Next up — path to first production deploy
+### Next up — provision Render and do the first deploy
 
-Ordered work list + current-state snapshot lives in [docs/deployment_plan.md](deployment_plan.md). The single blocker is the hosting decision (Fly.io + Postmark / Scaleway + Brevo / Hetzner + Postmark — see [docs/hosting_plans.md](hosting_plans.md)); production Dockerfile + CI pipeline is the largest remaining work block and is hosting-agnostic, so it can start in parallel.
+Host picked (Render + Brevo + Cloudflare + Sentry) and all deploy artifacts landed — [render.yaml](../render.yaml) Blueprint, CI env fix, CD workflow (Render Deploy Hook pattern), Brevo env in `.env.example`, Dockerfile build-args. Remaining work is ops, not code: follow [docs/deploy_runbook.md](deploy_runbook.md) §1-6 for first-time setup, DNS flip, Brevo inbound email, Sentry DSN. See [docs/deployment_plan.md](deployment_plan.md) for the ordered status list.
 
 ### Postponed
 

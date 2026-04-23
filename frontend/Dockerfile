@@ -18,7 +18,20 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* values are baked into the JS bundle at build time, so
+# they must be available as ARG here. Render (and our GitHub Actions CD
+# workflow) passes them in as docker build-args; fallbacks are localhost
+# so `docker build` still works on a developer's laptop without env.
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_WS_URL=ws://localhost:8000
+ARG NEXT_PUBLIC_FEATURE_AI_THUMBS=false
+ARG NEXT_PUBLIC_FEATURE_FEATURE_FEEDBACK=false
+
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL \
+    NEXT_PUBLIC_FEATURE_AI_THUMBS=$NEXT_PUBLIC_FEATURE_AI_THUMBS \
+    NEXT_PUBLIC_FEATURE_FEATURE_FEEDBACK=$NEXT_PUBLIC_FEATURE_FEATURE_FEEDBACK
 
 RUN npm run build
 

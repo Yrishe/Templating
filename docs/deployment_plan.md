@@ -1,6 +1,6 @@
 # Deployment plan — road to first production deploy
 
-_Last updated: 2026-04-22. Status snapshot + ordered work list so the next session can pick up cold._
+_Last updated: 2026-04-22. Host decided: **Render + Brevo + Cloudflare + Sentry**. Deploy artifacts landed; see [deploy_runbook.md](deploy_runbook.md) for the step-by-step._
 
 ## Current state (on `main`)
 
@@ -23,23 +23,17 @@ _Last updated: 2026-04-22. Status snapshot + ordered work list so the next sessi
 
 Every item has a "why" + a rough size. Items higher up unblock items below them.
 
-### 1. Hosting decision — ~1 day reading, ~1 day to provision
+### 1. Hosting decision — ✅ **Decided 2026-04-22**
 
-Pick one combo from [docs/hosting_plans.md](hosting_plans.md):
-- **Fly.io + Postmark** — lowest ops burden.
-- **Scaleway + Brevo** — EU residency focus.
-- **Hetzner + Postmark** — cheapest at scale.
+**Render + Brevo + Cloudflare + Sentry + Render managed backups.** Rejected Fly.io / Scaleway / Hetzner from [hosting_plans.md](hosting_plans.md); Render's declarative Blueprint + managed Postgres with daily snapshots out-of-the-box + single-company-runnable simplicity won. Brevo covers both outbound SMTP and inbound email parsing in one account. Cloudflare in front gives DNS + TLS + WAF.
 
-Everything below here depends on the provider's primitives (secrets manager, managed DB, domain + TLS, reverse proxy). This is the one blocking decision. Without it, the rest is speculative.
+### 2. Production Docker image + CI pipeline — ✅ **Wired 2026-04-22**
 
-### 2. Production Docker image + CI pipeline — ~2 days
-
-- Backend Dockerfile runtime stage already exists ([backend/Dockerfile](../backend/Dockerfile)). Confirm it still builds clean against `requirements/production.txt`.
-- **New** frontend production Dockerfile — today Compose runs `next dev`; prod needs `next build` + `next start` (or the standalone output).
-- GitHub Actions workflow: on push to `main`, run `pytest` + `tsc --noEmit` + image build, push to the chosen registry (Fly / ECR / Scaleway).
-- Image names + tags become the deploy artifact.
-
-This step is **hosting-agnostic for Dockerfile + CI; the registry push is the only line that changes per provider**. Worth drafting ahead of the hosting decision so the first deploy takes hours not days.
+- Backend Dockerfile already prod-ready (no changes).
+- Frontend Dockerfile gained `ARG NEXT_PUBLIC_*` declarations in the `builder` stage so Render can bake the API/WS URLs into the JS bundle at build time.
+- `backend-ci.yml` env mismatch fixed (Django reads `DB_*`, not `POSTGRES_*` / `DATABASE_URL`).
+- `cd-production.yml` rewritten to the Render Deploy Hook pattern: `workflow_run` triggers on CI success on `main`, `curl`s the two per-service Deploy Hooks, polls `/api/docs/` for health. No external image registry needed — Render builds from the Dockerfiles in-repo.
+- New [render.yaml](../render.yaml) Blueprint declares all 6 services in one file.
 
 ### 3. Database provisioning + migration runbook — ~1 day
 
@@ -115,17 +109,16 @@ Today the dev stack runs both as separate Compose services. Prod needs the same 
 
 ## Recommended sequence for the next few sessions
 
-1. **Hosting decision** (1 short conversation) — unblocks everything.
-2. **Production Dockerfile + CI** (1 session) — image artifact, green build, ready to deploy.
-3. **Provision + first deploy** (1 live session) — DB, secrets, domain, TLS, first manual login.
-4. **Inbound email + WebSocket verification** (0.5 session) — the two features that look different in prod than dev.
-5. **Tag `v0.1`** and start collecting real feedback through the widget.
+1. ~~**Hosting decision**~~ — ✅ Render + Brevo + Cloudflare + Sentry (2026-04-22).
+2. ~~**Production Dockerfile + CI**~~ — ✅ [render.yaml](../render.yaml) + CI fixes + CD rewrite (2026-04-22).
+3. **Provision + first deploy** (1 live session) — follow [deploy_runbook.md §1](deploy_runbook.md). Render account → Blueprint apply → fill secrets → create first manager.
+4. **Cloudflare DNS flip + env update** (0.5 session) — point domain at Render, update `DJANGO_ALLOWED_HOSTS` + `CORS_ALLOWED_ORIGINS` + `NEXT_PUBLIC_*`, verify WS works through Cloudflare proxy ([deploy_runbook.md §4](deploy_runbook.md)).
+5. **Brevo inbound email wiring** (0.5 session) — domain verify + MX + webhook config ([deploy_runbook.md §5](deploy_runbook.md)).
+6. **Tag `v0.1`** and start collecting real feedback through the widget.
 
-## Offer for next session
+## Offer for next session — superseded
 
-One piece of work has **zero hosting-decision dependencies** and is the single largest block of remaining effort: drafting the production Dockerfile for the frontend + the GitHub Actions CI workflow. These are identical across Fly / Scaleway / Hetzner. Doing this first means the hosting decision becomes "which `docker push` target" instead of "two days of prep".
-
-If the user wants to parallelise: draft it now while the hosting decision is still in flight.
+(Was: draft hosting-agnostic Dockerfile + CI. Done in this session — see §2.)
 
 ## Pointers
 
